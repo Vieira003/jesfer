@@ -13,7 +13,6 @@
     <p>Painel de Orçamentos, Gestão Financeira e Controle de Estoque</p>
   </header>
 
-  <!-- MENU DE NAVEGAÇÃO -->
   <nav class="main-nav">
     <button type="button" class="nav-btn active" onclick="mudarAba('abaOrcamentos', this)">Calculadora e Orçamentos</button>
     <button type="button" class="nav-btn" onclick="mudarAba('abaEstoque', this)">Controle de Estoque</button>
@@ -24,34 +23,32 @@
     <!-- ================= ABA 1: ORÇAMENTOS E FINANCEIRO ================= -->
     <div id="abaOrcamentos" class="tab-content active">
       
-      <!-- CONFIGURAÇÃO DINÂMICA DE DOBRAS -->
+      <!-- CONFIGURAÇÃO DINÂMICA DE DOBRAS / CATÁLOGO -->
       <div class="card">
         <h2>1. Tabela de Preços (Administração Flexível de Dobras e Valores)</h2>
         <div id="dobrasContainer" class="dobras-list"></div>
         <div class="actions-group">
-          <button type="button" class="btn-add" onclick="adicionarCampoDobra()">+ Adicionar Nova Dobra/Modelo</button>
+          <button type="button" class="btn-add" onclick="adicionarCampoDobra()">+ Adicionar Nova Dobra/Modelo ao Catálogo</button>
           <button type="button" class="btn-save" onclick="salvarTabela()">Salvar Tabela de Preços</button>
         </div>
       </div>
 
-      <!-- GERADOR DE ORÇAMENTO -->
+      <!-- GERADOR DE ORÇAMENTO MULTI-ITEMS -->
       <div class="card">
-        <h2>2. Gerador de Orçamentos</h2>
-        <div class="grid-3">
-          <div>
-            <label for="selectModelo">Selecione a Dobra/Modelo:</label>
-            <select id="selectModelo"></select>
-          </div>
-          <div>
-            <label for="metragem">Metragem Total (m):</label>
-            <input type="number" id="metragem" placeholder="Ex: 12" step="0.1">
-          </div>
-          <div>
-            <label for="custo">Custo do Material/Produção (R$):</label>
-            <input type="number" id="custo" placeholder="Ex: 120.00" step="0.01">
-          </div>
+        <h2>2. Gerador de Orçamentos (Itens da Obra)</h2>
+        <p class="subtitle">Adicione quantas dobras forem necessárias para a mesma obra:</p>
+        
+        <!-- Lista dinâmica de itens para a obra -->
+        <div id="itensObraContainer" class="dobras-list"></div>
+
+        <button type="button" class="btn-add" onclick="adicionarItemObra()" style="margin-bottom: 20px;">+ Adicionar Dobra a Esta Obra</button>
+
+        <div style="margin-bottom: 15px;">
+          <label for="custoTotal">Custo Total de Material/Mão de Obra da Operação (R$):</label>
+          <input type="number" id="custoTotal" placeholder="Ex: 1500.00" step="0.01">
         </div>
-        <button type="button" class="btn-save" onclick="gerarOrcamento()">Calcular Orçamento</button>
+
+        <button type="button" class="btn-save" onclick="gerarOrcamento()">Calcular Orçamento Total</button>
 
         <div class="result-panel" id="painelResultado" style="display: none;">
           <div class="result-item">Valor Total para o Cliente: <strong id="resVenda">R$ 0,00</strong></div>
@@ -75,7 +72,6 @@
 
     <!-- ================= ABA 2: CONTROLE DE ESTOQUE ================= -->
     <div id="abaEstoque" class="tab-content">
-      
       <div class="card">
         <h2>Controle Geral de Materiais e Insumos</h2>
         <p class="subtitle">Acompanhe e ajuste as quantidades em estoque da JESFER Calhas e Rufos.</p>
@@ -87,22 +83,19 @@
           <button type="button" class="btn-save" onclick="salvarEstoque()">Salvar Alterações do Estoque</button>
         </div>
       </div>
-
     </div>
 
   </div>
 
   <script>
-    // --- NAVEGAÇÃO ENTRE ABAS ---
     function mudarAba(idAba, elemento) {
       document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
       document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-      
       document.getElementById(idAba).classList.add('active');
       elemento.classList.add('active');
     }
 
-    // --- LÓGICA DAS DOBRAS E ORÇAMENTO ---
+    // --- TABELA DE PREÇOS / CATÁLOGO ---
     let dobras = [
       { nome: "Calha U Simples", preco: 25.00 },
       { nome: "Rufos Pingadeira", preco: 35.00 },
@@ -139,7 +132,7 @@
 
     function removerCampoDobra(index) {
       if (dobras.length <= 1) {
-        alert('O orçamento precisa de pelo menos uma dobra cadastrada.');
+        alert('O catálogo precisa de pelo menos uma dobra registrada.');
         return;
       }
       dobras.splice(index, 1);
@@ -151,20 +144,65 @@
       const nomes = document.querySelectorAll('.input-nome');
       const precos = document.querySelectorAll('.input-preco');
       dobras = [];
-      const select = document.getElementById('selectModelo');
-      select.innerHTML = '';
 
       nomes.forEach((inputNome, i) => {
         const nomeVal = inputNome.value || `Dobra ${i + 1}`;
         const precoVal = parseFloat(precos[i].value) || 0;
         dobras.push({ nome: nomeVal, preco: precoVal });
-
-        const opt = document.createElement('option');
-        opt.value = precoVal;
-        opt.innerText = `${nomeVal} - R$ ${precoVal.toFixed(2)}/m`;
-        select.appendChild(opt);
       });
-      alert('Tabela de dobras atualizada!');
+
+      atualizarSelectsObra();
+      alert('Tabela de preços salva com sucesso!');
+    }
+
+    // --- GERADOR DE ORÇAMENTO COM MÚLTIPLAS DOBRAS ---
+    let itensObra = [];
+
+    function adicionarItemObra() {
+      itensObra.push({ precoMetro: dobras[0] ? dobras[0].preco : 0, metragem: 0 });
+      renderizarItensObra();
+    }
+
+    function removerItemObra(index) {
+      itensObra.splice(index, 1);
+      renderizarItensObra();
+    }
+
+    function renderizarItensObra() {
+      const container = document.getElementById('itensObraContainer');
+      container.innerHTML = '';
+
+      itensObra.forEach((item, index) => {
+        const row = document.createElement('div');
+        row.className = 'dobra-item';
+
+        let optionsHTML = '';
+        dobras.forEach(d => {
+          const selected = d.preco === item.precoMetro ? 'selected' : '';
+          optionsHTML += `<option value="${d.preco}" ${selected}>${d.nome} - R$ ${d.preco.toFixed(2)}/m</option>`;
+        });
+
+        row.innerHTML = `
+          <div>
+            <label>Selecione a Dobra/Modelo:</label>
+            <select class="select-obra-modelo" onchange="itensObra[${index}].precoMetro = parseFloat(this.value)">
+              ${optionsHTML}
+            </select>
+          </div>
+          <div>
+            <label>Metragem (m):</label>
+            <input type="number" class="input-obra-metragem" value="${item.metragem || ''}" placeholder="Ex: 10" step="0.1" oninput="itensObra[${index}].metragem = parseFloat(this.value) || 0">
+          </div>
+          <div class="btn-remove-container">
+            <button type="button" class="btn-remove" onclick="removerItemObra(${index})">Remover Item</button>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function atualizarSelectsObra() {
+      renderizarItensObra();
     }
 
     function formatarMoeda(valor) {
@@ -172,11 +210,17 @@
     }
 
     function gerarOrcamento() {
-      const precoMetro = parseFloat(document.getElementById('selectModelo').value);
-      const metros = parseFloat(document.getElementById('metragem').value) || 0;
-      const custo = parseFloat(document.getElementById('custo').value) || 0;
+      if (itensObra.length === 0) {
+        alert('Adicione pelo menos uma dobra na obra para calcular!');
+        return;
+      }
 
-      const totalVenda = precoMetro * metros;
+      let totalVenda = 0;
+      itensObra.forEach(item => {
+        totalVenda += (item.precoMetro * item.metragem);
+      });
+
+      const custo = parseFloat(document.getElementById('custoTotal').value) || 0;
       const lucroLiquido = totalVenda - custo;
 
       document.getElementById('resVenda').innerText = formatarMoeda(totalVenda);
@@ -199,7 +243,7 @@
       document.getElementById('secaoFinanceira').style.display = 'block';
     }
 
-    // --- LÓGICA DO ESTOQUE ---
+    // --- CONTROLE DE ESTOQUE ---
     let estoque = [
       { item: "Chapa 24 (0.50mm) - Metros", qtd: 150, unidade: "Metros" },
       { item: "Chapa 26 (0.45mm) - Metros", qtd: 200, unidade: "Metros" },
@@ -265,9 +309,9 @@
       alert('Estoque atualizado com sucesso!');
     }
 
-    // Inicialização ao carregar
+    // Inicialização
     renderizarCamposDobras();
-    salvarTabela();
+    adicionarItemObra(); // Inicia com 1 item na obra
     renderizarEstoque();
   </script>
 </body>
