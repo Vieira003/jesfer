@@ -26,6 +26,11 @@ let itensObra = [];
 let itensFormRequisicao = [];
 let ultimoOrcamentoCalculado = null;
 
+// Helper para filtrar apenas insumos (exclui chapas da aba de Requisições)
+function obterInsumosSemChapa() {
+  return estoque.filter(est => !est.item.toLowerCase().includes('chapa'));
+}
+
 // --- NAVEGAÇÃO ENTRE ABAS ---
 function mudarAba(idAba, elemento) {
   document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -149,7 +154,7 @@ function salvarTabela(mostrarAlerta = false) {
 }
 
 // =========================================================================
-// 2. GERADOR DE ORÇAMENTOS E ACÚMULO DE CAIXA
+// 2. GERADOR DE ORÇAMENTOS, CAIXA E BAIXA AUTOMÁTICA DE CHAPAS
 // =========================================================================
 function adicionarItemObra() {
   const primeiraDobraId = dobras[0] ? dobras[0].id : null;
@@ -226,10 +231,24 @@ function gerarOrcamento() {
   }
 
   let totalVenda = 0;
+  const chapasConsumidas = [];
+
   itensObra.forEach(item => {
     const dobraEncontrada = dobras.find(d => d.id === item.dobraId);
     const precoMetro = dobraEncontrada ? dobraEncontrada.preco : 0;
     totalVenda += (precoMetro * item.metragem);
+
+    if (dobraEncontrada && dobraEncontrada.estoqueId && item.metragem > 0) {
+      const existente = chapasConsumidas.find(c => c.estoqueId === Number(dobraEncontrada.estoqueId));
+      if (existente) {
+        existente.qtd += item.metragem;
+      } else {
+        chapasConsumidas.push({
+          estoqueId: Number(dobraEncontrada.estoqueId),
+          qtd: item.metragem
+        });
+      }
+    }
   });
 
   const custo = parseFloat(document.getElementById('custoTotal').value) || 0;
@@ -240,7 +259,8 @@ function gerarOrcamento() {
     cliente,
     venda: totalVenda,
     custo,
-    lucro: lucroLiquido
+    lucro: lucroLiquido,
+    chapasConsumidas
   };
 
   const resLucroEl = document.getElementById('resLucro');
@@ -277,7 +297,7 @@ function gerarOrcamento() {
   document.getElementById('btnEnviarReq').style.display = 'inline-block';
 }
 
-// REGISTRA E SOMA NO CAIXA ACUMULADO
+// REGISTRA NO CAIXA E DESCONTA AS CHAPAS AUTOMATICAMENTE DO ESTOQUE
 function registrarNoCaixa() {
   if (!ultimoOrcamentoCalculado) {
     alert('Calcule o orçamento primeiro antes de registrar no caixa.');
@@ -286,6 +306,33 @@ function registrarNoCaixa() {
 
   const hoje = new Date().toLocaleDateString('pt-BR');
   const clienteAtual = document.getElementById('nomeCliente').value.trim() || ultimoOrcamentoCalculado.cliente;
+  const chapas = ultimoOrcamentoCalculado.chapasConsumidas || [];
+
+  // Verifica se há saldo suficiente de chapa
+  const faltantes = [];
+  chapas.forEach(c => {
+    const estProd = estoque.find(e => Number(e.id) === c.estoqueId);
+    if (estProd && estProd.qtd < c.qtd) {
+      faltantes.push(`${estProd.item}: precisa de ${c.qtd}m, saldo atual ${estProd.qtd}m`);
+    }
+  });
+
+  if (faltantes.length > 0) {
+    const continuar = confirm(
+      `⚠️ Atenção! Saldo insuficiente de chapa no estoque:\n\n- ${faltantes.join('\n- ')}\n\nDeseja registrar a obra e descontar mesmo assim?`
+    );
+    if (!continuar) return;
+  }
+
+  // Desconta automaticamente as chapas do estoque
+  let resumoBaixa = [];
+  chapas.forEach(c => {
+    const estProd = estoque.find(e => Number(e.id) === c.estoqueId);
+    if (estProd) {
+      estProd.qtd = Number((estProd.qtd - c.qtd).toFixed(2));
+      resumoBaixa.push(`-${c.qtd} ${estProd.unidade} de ${estProd.item}`);
+    }
+  });
 
   const novoLancamento = {
     id: Date.now(),
@@ -293,18 +340,44 @@ function registrarNoCaixa() {
     cliente: clienteAtual,
     venda: ultimoOrcamentoCalculado.venda,
     custo: ultimoOrcamentoCalculado.custo,
-    lucro: ultimoOrcamentoCalculado.lucro
+    lucro: ultimoOrcamentoCalculado.lucro,
+    chapasBaixadas: chapas
   };
 
   caixaLancamentos.unshift(novoLancamento);
+  
   salvarCaixaStorage();
   renderizarCaixaAcumulado();
+  salvarEstoque(false);
+  renderizarEstoque();
+  renderizarCamposDobras();
 
-  alert(`Obra "${clienteAtual}" somada ao Caixa Acumulado!`);
+  const msgEstoque = resumoBaixa.length > 0 
+    ? `\n\nBaixa automática no estoque:\n${resumoBaixa.join('\n')}` 
+    : '';
+
+  alert(`Obra "${clienteAtual}" registrada no Caixa!${msgEstoque}`);
 }
 
 function removerLancamentoCaixa(id) {
-  if (!confirm('Remover este lançamento do caixa acumulado?')) return;
+  const lancamento = caixaLancamentos.find(item => item.id === id);
+  if (!lancamento) return;
+
+  if (!confirm('Remover este lançamento do caixa e devolver as chapas descontadas ao estoque?')) return;
+
+  // Devolve as chapas ao estoque se houver registro
+  if (lancamento.chapasBaixadas && lancamento.chapasBaixadas.length > 0) {
+    lancamento.chapasBaixadas.forEach(c => {
+      const estProd = estoque.find(e => Number(e.id) === c.estoqueId);
+      if (estProd) {
+        estProd.qtd = Number((estProd.qtd + c.qtd).toFixed(2));
+      }
+    });
+    salvarEstoque(false);
+    renderizarEstoque();
+    renderizarCamposDobras();
+  }
+
   caixaLancamentos = caixaLancamentos.filter(item => item.id !== id);
   salvarCaixaStorage();
   renderizarCaixaAcumulado();
@@ -340,14 +413,12 @@ function renderizarCaixaAcumulado() {
   acumLucroEl.innerText = formatarMoeda(somaLucro);
   acumLucroEl.style.color = somaLucro < 0 ? '#dc2626' : '#047857';
 
-  // Divide o lucro líquido acumulado nas 4 caixinhas (se positivo)
   const baseDivisao = somaLucro > 0 ? somaLucro : 0;
   document.getElementById('acumDizimo').innerText = formatarMoeda(baseDivisao * 0.10);
   document.getElementById('acumEmpresa').innerText = formatarMoeda(baseDivisao * 0.50);
   document.getElementById('acumVoce').innerText = formatarMoeda(baseDivisao * 0.25);
   document.getElementById('acumInvest').innerText = formatarMoeda(baseDivisao * 0.15);
 
-  // Renderiza tabela de histórico
   const container = document.getElementById('historicoCaixaContainer');
   if (caixaLancamentos.length === 0) {
     container.innerHTML = '<p style="color: #64748b; font-size: 13px;">Nenhuma obra registrada no caixa ainda. Calcule um orçamento acima e clique em "💰 Registrar Obra no Caixa".</p>';
@@ -399,37 +470,15 @@ function imprimirOrcamento() {
   window.print();
 }
 
-// PONTE: ENVIAR ORÇAMENTO PARA ABA DE REQUISIÇÃO
+// PONTE: ABRE A ABA DE REQUISIÇÕES COM O NOME DO CLIENTE PARA LANÇAR OS INSUMOS (SEM CHAPAS)
 function enviarOrcamentoParaRequisicao() {
   const nomeCliente = document.getElementById('nomeCliente').value.trim();
-  
-  const mapaMateriais = {};
-  itensObra.forEach(item => {
-    if (item.metragem <= 0) return;
-    const dobra = dobras.find(d => d.id === item.dobraId);
-    if (dobra && dobra.estoqueId) {
-      if (!mapaMateriais[dobra.estoqueId]) {
-        mapaMateriais[dobra.estoqueId] = 0;
-      }
-      mapaMateriais[dobra.estoqueId] += item.metragem;
-    }
-  });
-
-  const idsAgrupados = Object.keys(mapaMateriais);
-  if (idsAgrupados.length === 0) {
-    alert('Nenhuma dobra deste orçamento possui chapa vinculada ou metragem maior que zero.');
-    return;
-  }
 
   document.getElementById('reqObra').value = nomeCliente || 'Obra Sem Nome';
   document.getElementById('reqData').valueAsDate = new Date();
   
-  itensFormRequisicao = idsAgrupados.map(estId => ({
-    estoqueId: Number(estId),
-    qtd: mapaMateriais[estId]
-  }));
-
-  renderizarItensFormRequisicao();
+  itensFormRequisicao = [];
+  adicionarItemFormRequisicao();
 
   const navBtnReq = document.getElementById('navRequisicoes');
   mudarAba('abaRequisicoes', navBtnReq);
@@ -437,10 +486,11 @@ function enviarOrcamentoParaRequisicao() {
 }
 
 // =========================================================================
-// 3. REQUISIÇÕES DE OBRAS (SEPARAÇÃO E BAIXA NO ESTOQUE)
+// 3. REQUISIÇÕES DE OBRAS (APENAS INSUMOS - BAIXA AUTOMÁTICA AO SALVAR)
 // =========================================================================
 function adicionarItemFormRequisicao() {
-  const primeiroEstId = estoque[0] ? estoque[0].id : null;
+  const insumos = obterInsumosSemChapa();
+  const primeiroEstId = insumos[0] ? insumos[0].id : null;
   itensFormRequisicao.push({ estoqueId: primeiroEstId, qtd: 1 });
   renderizarItensFormRequisicao();
 }
@@ -454,16 +504,18 @@ function renderizarItensFormRequisicao() {
   const container = document.getElementById('reqItensContainer');
   container.innerHTML = '';
 
+  const insumos = obterInsumosSemChapa();
+
   itensFormRequisicao.forEach((item, index) => {
     const row = document.createElement('div');
     row.className = 'dobra-item';
 
     const divMat = document.createElement('div');
     const labelMat = document.createElement('label');
-    labelMat.textContent = 'Material / Insumo do Estoque:';
+    labelMat.textContent = 'Insumo / Fixador (Parafusos, Buchas, PU):';
     const select = document.createElement('select');
 
-    estoque.forEach(est => {
+    insumos.forEach(est => {
       const opt = document.createElement('option');
       opt.value = est.id;
       opt.textContent = `${est.item} (Saldo: ${est.qtd} ${est.unidade})`;
@@ -502,6 +554,7 @@ function renderizarItensFormRequisicao() {
   });
 }
 
+// SALVA A REQUISIÇÃO E JÁ DÁ BAIXA IMEDIATA NO ESTOQUE AUTOMATICAMENTE
 function salvarNovaRequisicao() {
   const obra = document.getElementById('reqObra').value.trim();
   const responsavel = document.getElementById('reqResponsavel').value.trim() || 'Não informado';
@@ -515,7 +568,7 @@ function salvarNovaRequisicao() {
 
   const materiaisValidos = itensFormRequisicao.filter(i => i.estoqueId && i.qtd > 0);
   if (materiaisValidos.length === 0) {
-    alert('Adicione pelo menos um material com quantidade maior que zero.');
+    alert('Adicione pelo menos um insumo com quantidade maior que zero.');
     return;
   }
 
@@ -537,6 +590,30 @@ function salvarNovaRequisicao() {
     }
   });
 
+  // Verifica saldo suficiente antes de descontar
+  const faltantes = [];
+  agrupados.forEach(mat => {
+    const estProd = estoque.find(e => Number(e.id) === Number(mat.estoqueId));
+    if (estProd && estProd.qtd < mat.qtd) {
+      faltantes.push(`${estProd.item}: precisa de ${mat.qtd}, mas só há ${estProd.qtd} ${estProd.unidade}`);
+    }
+  });
+
+  if (faltantes.length > 0) {
+    const continuar = confirm(
+      `⚠️ Atenção! Estoque insuficiente para os seguintes itens:\n\n- ${faltantes.join('\n- ')}\n\nDeseja confirmar e descontar mesmo assim?`
+    );
+    if (!continuar) return;
+  }
+
+  // Desconta automaticamente do estoque
+  agrupados.forEach(mat => {
+    const estProd = estoque.find(e => Number(e.id) === Number(mat.estoqueId));
+    if (estProd) {
+      estProd.qtd = Number((estProd.qtd - mat.qtd).toFixed(2));
+    }
+  });
+
   const numeroSeq = requisicoes.length > 0 ? Math.max(...requisicoes.map(r => r.numero)) + 1 : 1;
 
   const novaReq = {
@@ -546,11 +623,14 @@ function salvarNovaRequisicao() {
     responsavel,
     data,
     obs,
-    status: 'pendente',
+    status: 'baixada', // Já entra baixada automaticamente
     materiais: agrupados
   };
 
   requisicoes.unshift(novaReq);
+
+  salvarEstoque(false);
+  renderizarEstoque();
   salvarRequisicoesStorage();
   renderizarListaRequisicoes();
 
@@ -560,7 +640,7 @@ function salvarNovaRequisicao() {
   itensFormRequisicao = [];
   adicionarItemFormRequisicao();
 
-  alert(`Requisição #${String(numeroSeq).padStart(3, '0')} salva como Pendente!`);
+  alert(`Requisição #${String(numeroSeq).padStart(3, '0')} salva e descontada do estoque automaticamente!`);
 }
 
 function salvarRequisicoesStorage() {
@@ -572,7 +652,7 @@ function renderizarListaRequisicoes() {
   container.innerHTML = '';
 
   if (requisicoes.length === 0) {
-    container.innerHTML = '<p style="color: #64748b; font-size: 14px;">Nenhuma requisição registrada ainda. Crie uma acima ou envie direto de um orçamento.</p>';
+    container.innerHTML = '<p style="color: #64748b; font-size: 14px;">Nenhuma requisição registrada ainda.</p>';
     return;
   }
 
@@ -604,7 +684,7 @@ function renderizarListaRequisicoes() {
           </div>
         </div>
         <span class="badge-status ${isBaixada ? 'badge-baixada' : 'badge-pendente'}">
-          ${isBaixada ? '🟢 Baixada do Estoque' : '🟡 Pendente / Separando'}
+          ${isBaixada ? '🟢 Baixada Automaticamente' : '🟡 Devolvida ao Estoque'}
         </span>
       </div>
 
@@ -621,11 +701,9 @@ function renderizarListaRequisicoes() {
       </table>
 
       <div class="req-actions no-print">
-        ${!isBaixada ? `
-          <button type="button" class="btn-add btn-sm" onclick="darBaixaRequisicao(${req.id})">✅ Confirmar Saída e Dar Baixa</button>
-        ` : `
+        ${isBaixada ? `
           <button type="button" class="btn-warning btn-sm" onclick="estornarRequisicao(${req.id})">↩️ Estornar (Devolver ao Estoque)</button>
-        `}
+        ` : ''}
         <button type="button" class="btn-print btn-sm" onclick="imprimirOrdemSeparacao(${req.id})">🖨️ Imprimir Ordem de Separação</button>
         <button type="button" class="btn-remove btn-sm" onclick="excluirRequisicao(${req.id})">Excluir</button>
       </div>
@@ -635,51 +713,11 @@ function renderizarListaRequisicoes() {
   });
 }
 
-function darBaixaRequisicao(reqId) {
-  const req = requisicoes.find(r => r.id === reqId);
-  if (!req || req.status === 'baixada') return;
-
-  const faltantes = [];
-  req.materiais.forEach(mat => {
-    const estProd = estoque.find(e => Number(e.id) === Number(mat.estoqueId));
-    if (!estProd) {
-      faltantes.push(`${mat.nomeItem} (item removido do cadastro de estoque)`);
-    } else if (estProd.qtd < mat.qtd) {
-      faltantes.push(`${estProd.item}: precisa de ${mat.qtd}, mas só há ${estProd.qtd} ${estProd.unidade}`);
-    }
-  });
-
-  if (faltantes.length > 0) {
-    const continuar = confirm(
-      `⚠️ Atenção! Estoque insuficiente para os seguintes itens:\n\n- ${faltantes.join('\n- ')}\n\nDeseja dar baixa mesmo assim (o saldo ficará negativo)?`
-    );
-    if (!continuar) return;
-  }
-
-  req.materiais.forEach(mat => {
-    const estProd = estoque.find(e => Number(e.id) === Number(mat.estoqueId));
-    if (estProd) {
-      estProd.qtd = Number((estProd.qtd - mat.qtd).toFixed(2));
-    }
-  });
-
-  req.status = 'baixada';
-
-  salvarEstoque(false);
-  renderizarEstoque();
-  renderizarCamposDobras();
-  renderizarItensFormRequisicao();
-  salvarRequisicoesStorage();
-  renderizarListaRequisicoes();
-
-  alert('Baixa confirmada! Todos os materiais foram descontados do estoque.');
-}
-
 function estornarRequisicao(reqId) {
   const req = requisicoes.find(r => r.id === reqId);
   if (!req || req.status !== 'baixada') return;
 
-  if (!confirm('Deseja estornar esta requisição e devolver os materiais para o saldo do estoque?')) return;
+  if (!confirm('Deseja estornar esta requisição e devolver os insumos para o saldo do estoque?')) return;
 
   req.materiais.forEach(mat => {
     const estProd = estoque.find(e => Number(e.id) === Number(mat.estoqueId));
@@ -688,16 +726,15 @@ function estornarRequisicao(reqId) {
     }
   });
 
-  req.status = 'pendente';
+  req.status = 'estornada';
 
   salvarEstoque(false);
   renderizarEstoque();
-  renderizarCamposDobras();
   renderizarItensFormRequisicao();
   salvarRequisicoesStorage();
   renderizarListaRequisicoes();
 
-  alert('Estorno realizado! Os materiais voltaram para o estoque.');
+  alert('Estorno realizado! Os insumos voltaram para o estoque.');
 }
 
 function excluirRequisicao(reqId) {
@@ -705,11 +742,19 @@ function excluirRequisicao(reqId) {
   if (!req) return;
 
   if (req.status === 'baixada') {
-    alert('Esta requisição já foi baixada no estoque. Clique em "Estornar" primeiro se quiser devolver os materiais antes de excluir.');
-    return;
+    if (!confirm('Esta requisição já descontou do estoque. Deseja devolver os materiais ao estoque e excluir?')) return;
+    req.materiais.forEach(mat => {
+      const estProd = estoque.find(e => Number(e.id) === Number(mat.estoqueId));
+      if (estProd) {
+        estProd.qtd = Number((estProd.qtd + mat.qtd).toFixed(2));
+      }
+    });
+    salvarEstoque(false);
+    renderizarEstoque();
+    renderizarItensFormRequisicao();
+  } else {
+    if (!confirm('Tem certeza que deseja excluir este registro?')) return;
   }
-
-  if (!confirm('Tem certeza que deseja excluir esta requisição pendente?')) return;
 
   requisicoes = requisicoes.filter(r => r.id !== reqId);
   salvarRequisicoesStorage();
@@ -737,7 +782,7 @@ function imprimirOrdemSeparacao(reqId) {
   const sheet = document.getElementById('areaImpressaoRequisicao');
   sheet.innerHTML = `
     <div style="border: 2px solid #1c3d5a; padding: 20px; border-radius: 6px;">
-      <h2 style="color: #1c3d5a; margin-bottom: 5px;">ORDEM DE SEPARAÇÃO DE MATERIAIS — #${numFormatado}</h2>
+      <h2 style="color: #1c3d5a; margin-bottom: 5px;">ORDEM DE SEPARAÇÃO DE INSUMOS — #${numFormatado}</h2>
       <p style="font-size: 13px; color: #475569; margin-bottom: 15px;">JESFER Calhas e Rufos — Controle Interno de Galpão</p>
       
       <div style="background: #f8fafc; padding: 12px; border: 1px solid #cbd5e1; margin-bottom: 15px; font-size: 14px; line-height: 1.6;">
@@ -750,7 +795,7 @@ function imprimirOrdemSeparacao(reqId) {
         <thead>
           <tr>
             <th style="text-align: center;">OK</th>
-            <th>Descrição do Material / Insumo</th>
+            <th>Descrição do Insumo / Fixador</th>
             <th>Quantidade</th>
           </tr>
         </thead>
