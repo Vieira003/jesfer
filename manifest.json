@@ -1,0 +1,15 @@
+{
+  "name": "JESFER Calhas e Rufos - Sistema",
+  "short_name": "JESFER App",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1c3d5a",
+  "theme_color": "#1c3d5a",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/1067/1067357.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

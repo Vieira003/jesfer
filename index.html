@@ -3,19 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JESFER Calhas e Rufos - Sistema e Estoque</title>
+  <title>JESFER Calhas e Rufos - Sistema Integrado</title>
   <link rel="stylesheet" href="style.css">
+  <!-- Configuração para instalar como aplicativo no celular -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1c3d5a">
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1067/1067357.png">
 </head>
 <body>
 
   <header>
     <h1>JESFER CALHAS E RUFOS</h1>
-    <p>Painel de Orçamentos, Gestão Financeira e Controle de Estoque</p>
+    <p>Painel de Orçamentos, Requisições de Obra e Controle de Estoque</p>
   </header>
 
-  <nav class="main-nav">
-    <button type="button" class="nav-btn active" onclick="mudarAba('abaOrcamentos', this)">Calculadora e Orçamentos</button>
-    <button type="button" class="nav-btn" onclick="mudarAba('abaEstoque', this)">Controle de Estoque</button>
+  <nav class="main-nav no-print">
+    <button type="button" id="navOrcamentos" class="nav-btn active" onclick="mudarAba('abaOrcamentos', this)">1. Orçamentos e Financeiro</button>
+    <button type="button" id="navRequisicoes" class="nav-btn" onclick="mudarAba('abaRequisicoes', this)">2. Requisições de Obras</button>
+    <button type="button" id="navEstoque" class="nav-btn" onclick="mudarAba('abaEstoque', this)">3. Controle de Estoque</button>
   </nav>
 
   <div class="container">
@@ -24,41 +29,61 @@
     <div id="abaOrcamentos" class="tab-content active">
       
       <!-- CONFIGURAÇÃO DINÂMICA DE DOBRAS / CATÁLOGO -->
-      <div class="card">
-        <h2>1. Tabela de Preços (Administração Flexível de Dobras e Valores)</h2>
+      <div class="card no-print">
+        <div class="card-header-flex">
+          <h2>1. Tabela de Preços e Vínculo de Chapa</h2>
+          <span id="statusTabela" class="badge-saved">Salvo automaticamente</span>
+        </div>
+        <p class="subtitle">Cadastre os modelos, valores por metro e qual chapa/material do estoque cada um consome:</p>
         <div id="dobrasContainer" class="dobras-list"></div>
         <div class="actions-group">
-          <button type="button" class="btn-add" onclick="adicionarCampoDobra()">+ Adicionar Nova Dobra/Modelo ao Catálogo</button>
-          <button type="button" class="btn-save" onclick="salvarTabela()">Salvar Tabela de Preços</button>
+          <button type="button" class="btn-add" onclick="adicionarCampoDobra()">+ Adicionar Nova Dobra/Modelo</button>
+          <button type="button" class="btn-save" onclick="salvarTabela(true)">Salvar Tabela</button>
         </div>
       </div>
 
       <!-- GERADOR DE ORÇAMENTO MULTI-ITEMS -->
       <div class="card">
-        <h2>2. Gerador de Orçamentos (Itens da Obra)</h2>
-        <p class="subtitle">Adicione quantas dobras forem necessárias para a mesma obra:</p>
+        <div class="print-only-header">
+          <h2>ORÇAMENTO DE SERVIÇOS E MATERIAIS</h2>
+          <p id="dataOrcamento"></p>
+        </div>
+
+        <h2 class="no-print">2. Gerador de Orçamentos (Itens da Obra)</h2>
+        <p class="subtitle no-print">Adicione quantas dobras forem necessárias para a mesma obra:</p>
         
-        <!-- Lista dinâmica de itens para a obra -->
+        <div class="cliente-box">
+          <label for="nomeCliente">Nome do Cliente / Obra:</label>
+          <input type="text" id="nomeCliente" placeholder="Ex: João Silva - Residência Centro">
+        </div>
+
         <div id="itensObraContainer" class="dobras-list"></div>
 
-        <button type="button" class="btn-add" onclick="adicionarItemObra()" style="margin-bottom: 20px;">+ Adicionar Dobra a Esta Obra</button>
+        <button type="button" class="btn-add no-print" onclick="adicionarItemObra()" style="margin-bottom: 20px;">+ Adicionar Dobra a Esta Obra</button>
 
-        <div style="margin-bottom: 15px;">
+        <div class="no-print" style="margin-bottom: 15px;">
           <label for="custoTotal">Custo Total de Material/Mão de Obra da Operação (R$):</label>
           <input type="number" id="custoTotal" placeholder="Ex: 1500.00" step="0.01">
         </div>
 
-        <button type="button" class="btn-save" onclick="gerarOrcamento()">Calcular Orçamento Total</button>
+        <div class="actions-group no-print">
+          <button type="button" class="btn-save" onclick="gerarOrcamento()">Calcular Orçamento</button>
+          <button type="button" class="btn-warning" id="btnEnviarReq" onclick="enviarOrcamentoParaRequisicao()" style="display: none;">📋 Gerar Requisição desta Obra</button>
+          <button type="button" class="btn-print" id="btnImprimirOrc" onclick="imprimirOrcamento()" style="display: none;">🖨️ PDF Cliente</button>
+        </div>
 
         <div class="result-panel" id="painelResultado" style="display: none;">
-          <div class="result-item">Valor Total para o Cliente: <strong id="resVenda">R$ 0,00</strong></div>
-          <div class="result-item">Custo da Operação: <strong id="resCusto">R$ 0,00</strong></div>
-          <div class="result-item">Lucro Líquido: <strong id="resLucro">R$ 0,00</strong></div>
+          <div class="result-item destaque-venda">Valor Total para o Cliente: <strong id="resVenda">R$ 0,00</strong></div>
+          <div class="result-item no-print">Custo da Operação: <strong id="resCusto">R$ 0,00</strong></div>
+          <div class="result-item no-print">Lucro Líquido: <strong id="resLucro">R$ 0,00</strong></div>
+          <div id="alertaPrejuizo" class="alerta-prejuizo no-print" style="display: none;">
+            ⚠️ Atenção: O custo da operação está maior que o valor cobrado do cliente!
+          </div>
         </div>
       </div>
 
       <!-- DIVISÃO DE LUCROS -->
-      <div class="card" id="secaoFinanceira" style="display: none;">
+      <div class="card no-print" id="secaoFinanceira" style="display: none;">
         <h2>3. Divisão do Lucro Líquido (Regra de Negócio)</h2>
         <div class="grid-4">
           <div class="profit-card dizimo">Dízimo (10%)<span id="divDizimo">R$ 0,00</span></div>
@@ -70,249 +95,83 @@
 
     </div>
 
-    <!-- ================= ABA 2: CONTROLE DE ESTOQUE ================= -->
+    <!-- ================= ABA 2: REQUISIÇÕES DE OBRAS ================= -->
+    <div id="abaRequisicoes" class="tab-content">
+      
+      <!-- FORMULÁRIO DE NOVA REQUISIÇÃO -->
+      <div class="card no-print">
+        <h2>Nova Requisição de Materiais para Obra</h2>
+        <p class="subtitle">Monte a lista de chapas, parafusos, buchas e selantes que vão sair do estoque para a instalação:</p>
+
+        <div class="grid-3">
+          <div>
+            <label for="reqObra">Nome da Obra / Cliente *</label>
+            <input type="text" id="reqObra" placeholder="Ex: Obra Sr. Carlos - Centro">
+          </div>
+          <div>
+            <label for="reqResponsavel">Instalador / Responsável</label>
+            <input type="text" id="reqResponsavel" placeholder="Ex: Equipe 01 / Marcos">
+          </div>
+          <div>
+            <label for="reqData">Data de Saída</label>
+            <input type="date" id="reqData">
+          </div>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <label for="reqObs">Observações / Detalhes de Corte:</label>
+          <input type="text" id="reqObs" placeholder="Ex: Levar escada grande e extensão de 20m">
+        </div>
+
+        <h3 style="font-size: 15px; color: var(--primary); margin-bottom: 10px;">Materiais Solicitados do Estoque:</h3>
+        <div id="reqItensContainer" class="dobras-list"></div>
+
+        <div class="actions-group">
+          <button type="button" class="btn-add" onclick="adicionarItemFormRequisicao()">+ Adicionar Material à Lista</button>
+          <button type="button" class="btn-save" onclick="salvarNovaRequisicao()">Salvar Requisição (Pendente)</button>
+        </div>
+      </div>
+
+      <!-- HISTÓRICO E LISTA DE REQUISIÇÕES SALVAS -->
+      <div class="card" id="areaListaRequisicoes">
+        <div class="card-header-flex no-print">
+          <h2>Requisições Registradas (Separação e Baixa)</h2>
+        </div>
+        <p class="subtitle no-print">Confira as listas pendentes, imprima a ordem de separação ou confirme a saída para descontar do estoque:</p>
+        
+        <div id="listaRequisicoesSalvas" class="requisicoes-grid"></div>
+      </div>
+
+    </div>
+
+    <!-- ================= ABA 3: CONTROLE DE ESTOQUE ================= -->
     <div id="abaEstoque" class="tab-content">
       <div class="card">
-        <h2>Controle Geral de Materiais e Insumos</h2>
-        <p class="subtitle">Acompanhe e ajuste as quantidades em estoque da JESFER Calhas e Rufos.</p>
+        <div class="card-header-flex">
+          <h2>Controle Geral de Materiais e Insumos</h2>
+          <span id="statusEstoque" class="badge-saved">Salvo automaticamente</span>
+        </div>
+        <p class="subtitle">Saldo atualizado automaticamente pelas baixas de requisições ou ajustes manuais:</p>
         
         <div id="estoqueContainer" class="estoque-list"></div>
 
-        <div class="actions-group" style="margin-top: 15px;">
-          <button type="button" class="btn-add" onclick="adicionarItemEstoque()">+ Adicionar Novo Item ao Estoque</button>
-          <button type="button" class="btn-save" onclick="salvarEstoque()">Salvar Alterações do Estoque</button>
+        <div class="actions-group no-print" style="margin-top: 15px;">
+          <button type="button" class="btn-add" onclick="adicionarItemEstoque()">+ Adicionar Novo Material</button>
+          <button type="button" class="btn-save" onclick="salvarEstoque(true)">Salvar Estoque</button>
         </div>
       </div>
     </div>
 
   </div>
 
+  <!-- ÁREA OCULTA EXCLUSIVA PARA IMPRESSÃO DE ORDEM DE SEPARAÇÃO -->
+  <div id="areaImpressaoRequisicao" class="print-req-sheet"></div>
+
+  <script src="script.js"></script>
   <script>
-    function mudarAba(idAba, elemento) {
-      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-      document.getElementById(idAba).classList.add('active');
-      elemento.classList.add('active');
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js');
     }
-
-    // --- TABELA DE PREÇOS / CATÁLOGO ---
-    let dobras = [
-      { nome: "Calha U Simples", preco: 25.00 },
-      { nome: "Rufos Pingadeira", preco: 35.00 },
-      { nome: "Moldura Especial", preco: 50.00 }
-    ];
-
-    function renderizarCamposDobras() {
-      const container = document.getElementById('dobrasContainer');
-      container.innerHTML = '';
-      dobras.forEach((dobra, index) => {
-        const item = document.createElement('div');
-        item.className = 'dobra-item';
-        item.innerHTML = `
-          <div>
-            <label>Nome da Dobra/Modelo ${index + 1}:</label>
-            <input type="text" class="input-nome" value="${dobra.nome}">
-          </div>
-          <div>
-            <label>Preço por Metro (R$):</label>
-            <input type="number" class="input-preco" value="${dobra.preco.toFixed(2)}" step="0.01">
-          </div>
-          <div class="btn-remove-container">
-            <button type="button" class="btn-remove" onclick="removerCampoDobra(${index})">Remover</button>
-          </div>
-        `;
-        container.appendChild(item);
-      });
-    }
-
-    function adicionarCampoDobra() {
-      dobras.push({ nome: `Dobra ${dobras.length + 1}`, preco: 0.00 });
-      renderizarCamposDobras();
-    }
-
-    function removerCampoDobra(index) {
-      if (dobras.length <= 1) {
-        alert('O catálogo precisa de pelo menos uma dobra registrada.');
-        return;
-      }
-      dobras.splice(index, 1);
-      renderizarCamposDobras();
-      salvarTabela();
-    }
-
-    function salvarTabela() {
-      const nomes = document.querySelectorAll('.input-nome');
-      const precos = document.querySelectorAll('.input-preco');
-      dobras = [];
-
-      nomes.forEach((inputNome, i) => {
-        const nomeVal = inputNome.value || `Dobra ${i + 1}`;
-        const precoVal = parseFloat(precos[i].value) || 0;
-        dobras.push({ nome: nomeVal, preco: precoVal });
-      });
-
-      atualizarSelectsObra();
-      alert('Tabela de preços salva com sucesso!');
-    }
-
-    // --- GERADOR DE ORÇAMENTO COM MÚLTIPLAS DOBRAS ---
-    let itensObra = [];
-
-    function adicionarItemObra() {
-      itensObra.push({ precoMetro: dobras[0] ? dobras[0].preco : 0, metragem: 0 });
-      renderizarItensObra();
-    }
-
-    function removerItemObra(index) {
-      itensObra.splice(index, 1);
-      renderizarItensObra();
-    }
-
-    function renderizarItensObra() {
-      const container = document.getElementById('itensObraContainer');
-      container.innerHTML = '';
-
-      itensObra.forEach((item, index) => {
-        const row = document.createElement('div');
-        row.className = 'dobra-item';
-
-        let optionsHTML = '';
-        dobras.forEach(d => {
-          const selected = d.preco === item.precoMetro ? 'selected' : '';
-          optionsHTML += `<option value="${d.preco}" ${selected}>${d.nome} - R$ ${d.preco.toFixed(2)}/m</option>`;
-        });
-
-        row.innerHTML = `
-          <div>
-            <label>Selecione a Dobra/Modelo:</label>
-            <select class="select-obra-modelo" onchange="itensObra[${index}].precoMetro = parseFloat(this.value)">
-              ${optionsHTML}
-            </select>
-          </div>
-          <div>
-            <label>Metragem (m):</label>
-            <input type="number" class="input-obra-metragem" value="${item.metragem || ''}" placeholder="Ex: 10" step="0.1" oninput="itensObra[${index}].metragem = parseFloat(this.value) || 0">
-          </div>
-          <div class="btn-remove-container">
-            <button type="button" class="btn-remove" onclick="removerItemObra(${index})">Remover Item</button>
-          </div>
-        `;
-        container.appendChild(row);
-      });
-    }
-
-    function atualizarSelectsObra() {
-      renderizarItensObra();
-    }
-
-    function formatarMoeda(valor) {
-      return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    }
-
-    function gerarOrcamento() {
-      if (itensObra.length === 0) {
-        alert('Adicione pelo menos uma dobra na obra para calcular!');
-        return;
-      }
-
-      let totalVenda = 0;
-      itensObra.forEach(item => {
-        totalVenda += (item.precoMetro * item.metragem);
-      });
-
-      const custo = parseFloat(document.getElementById('custoTotal').value) || 0;
-      const lucroLiquido = totalVenda - custo;
-
-      document.getElementById('resVenda').innerText = formatarMoeda(totalVenda);
-      document.getElementById('resCusto').innerText = formatarMoeda(custo);
-      document.getElementById('resLucro').innerText = formatarMoeda(lucroLiquido);
-
-      if (lucroLiquido > 0) {
-        document.getElementById('divDizimo').innerText = formatarMoeda(lucroLiquido * 0.10);
-        document.getElementById('divEmpresa').innerText = formatarMoeda(lucroLiquido * 0.50);
-        document.getElementById('divVoce').innerText = formatarMoeda(lucroLiquido * 0.25);
-        document.getElementById('divInvest').innerText = formatarMoeda(lucroLiquido * 0.15);
-      } else {
-        document.getElementById('divDizimo').innerText = "R$ 0,00";
-        document.getElementById('divEmpresa').innerText = "R$ 0,00";
-        document.getElementById('divVoce').innerText = "R$ 0,00";
-        document.getElementById('divInvest').innerText = "R$ 0,00";
-      }
-
-      document.getElementById('painelResultado').style.display = 'block';
-      document.getElementById('secaoFinanceira').style.display = 'block';
-    }
-
-    // --- CONTROLE DE ESTOQUE ---
-    let estoque = [
-      { item: "Chapa 24 (0.50mm) - Metros", qtd: 150, unidade: "Metros" },
-      { item: "Chapa 26 (0.45mm) - Metros", qtd: 200, unidade: "Metros" },
-      { item: "Parafusos Ponta Fina (Saco/Unidade)", qtd: 1000, unidade: "Unidades" },
-      { item: "Parafusos de Aço", qtd: 500, unidade: "Unidades" },
-      { item: "Parafusos de Bucha (com bucha)", qtd: 300, unidade: "Kits" },
-      { item: "Parafusos de Telha (3/8 x 110mm)", qtd: 400, unidade: "Unidades" },
-      { item: "Parafusos de Telha (1/4 x 80mm)", qtd: 250, unidade: "Unidades" },
-      { item: "Tubos de PU Calha (Selante)", qtd: 45, unidade: "Tubos" }
-    ];
-
-    function renderizarEstoque() {
-      const container = document.getElementById('estoqueContainer');
-      container.innerHTML = '';
-      estoque.forEach((prod, index) => {
-        const item = document.createElement('div');
-        item.className = 'estoque-item';
-        item.innerHTML = `
-          <div>
-            <label>Descrição do Item / Material:</label>
-            <input type="text" class="est-item" value="${prod.item}">
-          </div>
-          <div>
-            <label>Quantidade em Estoque:</label>
-            <input type="number" class="est-qtd" value="${prod.qtd}">
-          </div>
-          <div>
-            <label>Unidade de Medida:</label>
-            <input type="text" class="est-unidade" value="${prod.unidade}">
-          </div>
-          <div class="btn-remove-container">
-            <button type="button" class="btn-remove" onclick="removerItemEstoque(${index})">Remover</button>
-          </div>
-        `;
-        container.appendChild(item);
-      });
-    }
-
-    function adicionarItemEstoque() {
-      estoque.push({ item: "Novo Item", qtd: 0, unidade: "Unidades" });
-      renderizarEstoque();
-    }
-
-    function removerItemEstoque(index) {
-      estoque.splice(index, 1);
-      renderizarEstoque();
-      salvarEstoque();
-    }
-
-    function salvarEstoque() {
-      const itens = document.querySelectorAll('.est-item');
-      const qtds = document.querySelectorAll('.est-qtd');
-      const unidades = document.querySelectorAll('.est-unidade');
-
-      estoque = [];
-      itens.forEach((el, i) => {
-        estoque.push({
-          item: el.value || "Item",
-          qtd: parseFloat(qtds[i].value) || 0,
-          unidade: unidades[i].value || "Unidades"
-        });
-      });
-      alert('Estoque atualizado com sucesso!');
-    }
-
-    // Inicialização
-    renderizarCamposDobras();
-    adicionarItemObra(); // Inicia com 1 item na obra
-    renderizarEstoque();
   </script>
 </body>
 </html>
