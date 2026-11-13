@@ -1,4 +1,4 @@
-// --- DADOS PADRÃO INICIAIS (COM IDS FIXOS PARA INTEGRAÇÃO) ---
+// --- DADOS PADRÃO INICIAIS ---
 const ESTOQUE_PADRAO = [
   { id: 101, item: "Chapa 24 (0.50mm) - Metros", qtd: 150, unidade: "Metros" },
   { id: 102, item: "Chapa 26 (0.45mm) - Metros", qtd: 200, unidade: "Metros" },
@@ -20,9 +20,11 @@ const DOBRAS_PADRAO = [
 let estoque = JSON.parse(localStorage.getItem('jesfer_estoque_v2')) || ESTOQUE_PADRAO;
 let dobras = JSON.parse(localStorage.getItem('jesfer_dobras_v2')) || DOBRAS_PADRAO;
 let requisicoes = JSON.parse(localStorage.getItem('jesfer_requisicoes_v2')) || [];
+let caixaLancamentos = JSON.parse(localStorage.getItem('jesfer_caixa_v2')) || [];
 
 let itensObra = [];
 let itensFormRequisicao = [];
+let ultimoOrcamentoCalculado = null;
 
 // --- NAVEGAÇÃO ENTRE ABAS ---
 function mudarAba(idAba, elemento) {
@@ -33,7 +35,7 @@ function mudarAba(idAba, elemento) {
 }
 
 // =========================================================================
-// 1. TABELA DE PREÇOS / CATÁLOGO (COM VÍNCULO DE MATERIAL DO ESTOQUE)
+// 1. TABELA DE PREÇOS / CATÁLOGO
 // =========================================================================
 function renderizarCamposDobras() {
   const container = document.getElementById('dobrasContainer');
@@ -43,7 +45,6 @@ function renderizarCamposDobras() {
     const item = document.createElement('div');
     item.className = 'catalogo-item';
 
-    // Nome da Dobra
     const divNome = document.createElement('div');
     const labelNome = document.createElement('label');
     labelNome.textContent = `Modelo ${index + 1}:`;
@@ -57,7 +58,6 @@ function renderizarCamposDobras() {
     };
     divNome.append(labelNome, inputNome);
 
-    // Preço por Metro
     const divPreco = document.createElement('div');
     const labelPreco = document.createElement('label');
     labelPreco.textContent = 'Preço/Metro (R$):';
@@ -72,7 +72,6 @@ function renderizarCamposDobras() {
     };
     divPreco.append(labelPreco, inputPreco);
 
-    // Vínculo com Material do Estoque
     const divVinculo = document.createElement('div');
     const labelVinculo = document.createElement('label');
     labelVinculo.textContent = 'Chapa/Material Consumido:';
@@ -99,7 +98,6 @@ function renderizarCamposDobras() {
     };
     divVinculo.append(labelVinculo, selectVinculo);
 
-    // Botão Remover
     const divBtn = document.createElement('div');
     divBtn.className = 'btn-remove-container';
     const btnRemove = document.createElement('button');
@@ -151,7 +149,7 @@ function salvarTabela(mostrarAlerta = false) {
 }
 
 // =========================================================================
-// 2. GERADOR DE ORÇAMENTOS E FINANCEIRO
+// 2. GERADOR DE ORÇAMENTOS E ACÚMULO DE CAIXA
 // =========================================================================
 function adicionarItemObra() {
   const primeiraDobraId = dobras[0] ? dobras[0].id : null;
@@ -236,6 +234,14 @@ function gerarOrcamento() {
 
   const custo = parseFloat(document.getElementById('custoTotal').value) || 0;
   const lucroLiquido = totalVenda - custo;
+  const cliente = document.getElementById('nomeCliente').value.trim() || 'Obra Avulsa';
+
+  ultimoOrcamentoCalculado = {
+    cliente,
+    venda: totalVenda,
+    custo,
+    lucro: lucroLiquido
+  };
 
   const resLucroEl = document.getElementById('resLucro');
   const alertaPrejuizo = document.getElementById('alertaPrejuizo');
@@ -266,8 +272,124 @@ function gerarOrcamento() {
 
   document.getElementById('painelResultado').style.display = 'block';
   document.getElementById('secaoFinanceira').style.display = 'block';
+  document.getElementById('btnRegistrarCaixa').style.display = 'inline-block';
   document.getElementById('btnImprimirOrc').style.display = 'inline-block';
   document.getElementById('btnEnviarReq').style.display = 'inline-block';
+}
+
+// REGISTRA E SOMA NO CAIXA ACUMULADO
+function registrarNoCaixa() {
+  if (!ultimoOrcamentoCalculado) {
+    alert('Calcule o orçamento primeiro antes de registrar no caixa.');
+    return;
+  }
+
+  const hoje = new Date().toLocaleDateString('pt-BR');
+  const clienteAtual = document.getElementById('nomeCliente').value.trim() || ultimoOrcamentoCalculado.cliente;
+
+  const novoLancamento = {
+    id: Date.now(),
+    data: hoje,
+    cliente: clienteAtual,
+    venda: ultimoOrcamentoCalculado.venda,
+    custo: ultimoOrcamentoCalculado.custo,
+    lucro: ultimoOrcamentoCalculado.lucro
+  };
+
+  caixaLancamentos.unshift(novoLancamento);
+  salvarCaixaStorage();
+  renderizarCaixaAcumulado();
+
+  alert(`Obra "${clienteAtual}" somada ao Caixa Acumulado!`);
+}
+
+function removerLancamentoCaixa(id) {
+  if (!confirm('Remover este lançamento do caixa acumulado?')) return;
+  caixaLancamentos = caixaLancamentos.filter(item => item.id !== id);
+  salvarCaixaStorage();
+  renderizarCaixaAcumulado();
+}
+
+function limparCaixaCompleto() {
+  if (caixaLancamentos.length === 0) return;
+  if (!confirm('Tem certeza que deseja zerar todo o caixa acumulado e apagar o histórico de testes?')) return;
+  caixaLancamentos = [];
+  salvarCaixaStorage();
+  renderizarCaixaAcumulado();
+}
+
+function salvarCaixaStorage() {
+  localStorage.setItem('jesfer_caixa_v2', JSON.stringify(caixaLancamentos));
+}
+
+function renderizarCaixaAcumulado() {
+  let somaVenda = 0;
+  let somaCusto = 0;
+  let somaLucro = 0;
+
+  caixaLancamentos.forEach(item => {
+    somaVenda += item.venda;
+    somaCusto += item.custo;
+    somaLucro += item.lucro;
+  });
+
+  document.getElementById('acumFaturamento').innerText = formatarMoeda(somaVenda);
+  document.getElementById('acumCustos').innerText = formatarMoeda(somaCusto);
+  
+  const acumLucroEl = document.getElementById('acumLucro');
+  acumLucroEl.innerText = formatarMoeda(somaLucro);
+  acumLucroEl.style.color = somaLucro < 0 ? '#dc2626' : '#047857';
+
+  // Divide o lucro líquido acumulado nas 4 caixinhas (se positivo)
+  const baseDivisao = somaLucro > 0 ? somaLucro : 0;
+  document.getElementById('acumDizimo').innerText = formatarMoeda(baseDivisao * 0.10);
+  document.getElementById('acumEmpresa').innerText = formatarMoeda(baseDivisao * 0.50);
+  document.getElementById('acumVoce').innerText = formatarMoeda(baseDivisao * 0.25);
+  document.getElementById('acumInvest').innerText = formatarMoeda(baseDivisao * 0.15);
+
+  // Renderiza tabela de histórico
+  const container = document.getElementById('historicoCaixaContainer');
+  if (caixaLancamentos.length === 0) {
+    container.innerHTML = '<p style="color: #64748b; font-size: 13px;">Nenhuma obra registrada no caixa ainda. Calcule um orçamento acima e clique em "💰 Registrar Obra no Caixa".</p>';
+    return;
+  }
+
+  let linhas = '';
+  caixaLancamentos.forEach(l => {
+    const corLucro = l.lucro < 0 ? '#dc2626' : '#16a34a';
+    linhas += `
+      <tr>
+        <td>${l.data}</td>
+        <td><strong>${l.cliente}</strong></td>
+        <td>${formatarMoeda(l.venda)}</td>
+        <td>${formatarMoeda(l.custo)}</td>
+        <td style="color: ${corLucro}; font-weight: bold;">${formatarMoeda(l.lucro)}</td>
+        <td style="text-align: center;">
+          <button type="button" class="btn-remove btn-sm" onclick="removerLancamentoCaixa(${l.id})">X</button>
+        </td>
+      </tr>
+    `;
+  });
+
+  container.innerHTML = `
+    <div class="table-responsive">
+      <table class="req-tabela-itens">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Cliente / Obra</th>
+            <th>Valor Cobrado</th>
+            <th>Custo</th>
+            <th>Lucro Líquido</th>
+            <th style="width: 60px; text-align: center;">Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${linhas}
+        </tbody>
+      </table>
+    </div>
+  `;
 }
 
 function imprimirOrcamento() {
@@ -281,7 +403,6 @@ function imprimirOrcamento() {
 function enviarOrcamentoParaRequisicao() {
   const nomeCliente = document.getElementById('nomeCliente').value.trim();
   
-  // Agrupa metragens pelo mesmo estoqueId
   const mapaMateriais = {};
   itensObra.forEach(item => {
     if (item.metragem <= 0) return;
@@ -300,7 +421,6 @@ function enviarOrcamentoParaRequisicao() {
     return;
   }
 
-  // Preenche o formulário da aba Requisições
   document.getElementById('reqObra').value = nomeCliente || 'Obra Sem Nome';
   document.getElementById('reqData').valueAsDate = new Date();
   
@@ -311,7 +431,6 @@ function enviarOrcamentoParaRequisicao() {
 
   renderizarItensFormRequisicao();
 
-  // Muda para a aba de Requisições
   const navBtnReq = document.getElementById('navRequisicoes');
   mudarAba('abaRequisicoes', navBtnReq);
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -339,7 +458,6 @@ function renderizarItensFormRequisicao() {
     const row = document.createElement('div');
     row.className = 'dobra-item';
 
-    // Select do Material do Estoque
     const divMat = document.createElement('div');
     const labelMat = document.createElement('label');
     labelMat.textContent = 'Material / Insumo do Estoque:';
@@ -358,7 +476,6 @@ function renderizarItensFormRequisicao() {
     };
     divMat.append(labelMat, select);
 
-    // Quantidade Solicitada
     const divQtd = document.createElement('div');
     const labelQtd = document.createElement('label');
     labelQtd.textContent = 'Quantidade a Retirar:';
@@ -371,7 +488,6 @@ function renderizarItensFormRequisicao() {
     };
     divQtd.append(labelQtd, inputQtd);
 
-    // Botão Remover
     const divBtn = document.createElement('div');
     divBtn.className = 'btn-remove-container';
     const btnRemove = document.createElement('button');
@@ -403,7 +519,6 @@ function salvarNovaRequisicao() {
     return;
   }
 
-  // Agrupa itens repetidos na mesma requisição
   const agrupados = [];
   materiaisValidos.forEach(item => {
     const estProd = estoque.find(e => Number(e.id) === Number(item.estoqueId));
@@ -431,7 +546,7 @@ function salvarNovaRequisicao() {
     responsavel,
     data,
     obs,
-    status: 'pendente', // 'pendente' ou 'baixada'
+    status: 'pendente',
     materiais: agrupados
   };
 
@@ -439,7 +554,6 @@ function salvarNovaRequisicao() {
   salvarRequisicoesStorage();
   renderizarListaRequisicoes();
 
-  // Limpa formulário
   document.getElementById('reqObra').value = '';
   document.getElementById('reqResponsavel').value = '';
   document.getElementById('reqObs').value = '';
@@ -525,7 +639,6 @@ function darBaixaRequisicao(reqId) {
   const req = requisicoes.find(r => r.id === reqId);
   if (!req || req.status === 'baixada') return;
 
-  // Verifica se há saldo suficiente para todos os itens
   const faltantes = [];
   req.materiais.forEach(mat => {
     const estProd = estoque.find(e => Number(e.id) === Number(mat.estoqueId));
@@ -543,7 +656,6 @@ function darBaixaRequisicao(reqId) {
     if (!continuar) return;
   }
 
-  // Desconta do estoque
   req.materiais.forEach(mat => {
     const estProd = estoque.find(e => Number(e.id) === Number(mat.estoqueId));
     if (estProd) {
@@ -756,6 +868,7 @@ function salvarEstoque(mostrarAlerta = false) {
 document.getElementById('reqData').valueAsDate = new Date();
 renderizarCamposDobras();
 adicionarItemObra();
+renderizarCaixaAcumulado();
 adicionarItemFormRequisicao();
 renderizarListaRequisicoes();
 renderizarEstoque();

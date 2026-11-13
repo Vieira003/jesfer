@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>JESFER Calhas e Rufos - Sistema Integrado</title>
   <link rel="stylesheet" href="style.css">
-  <!-- Configuração para instalar como aplicativo no celular -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#1c3d5a">
   <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1067/1067357.png">
@@ -18,7 +17,7 @@
   </header>
 
   <nav class="main-nav no-print">
-    <button type="button" id="navOrcamentos" class="nav-btn active" onclick="mudarAba('abaOrcamentos', this)">1. Orçamentos e Financeiro</button>
+    <button type="button" id="navOrcamentos" class="nav-btn active" onclick="mudarAba('abaOrcamentos', this)">1. Orçamentos e Caixa</button>
     <button type="button" id="navRequisicoes" class="nav-btn" onclick="mudarAba('abaRequisicoes', this)">2. Requisições de Obras</button>
     <button type="button" id="navEstoque" class="nav-btn" onclick="mudarAba('abaEstoque', this)">3. Controle de Estoque</button>
   </nav>
@@ -68,29 +67,65 @@
 
         <div class="actions-group no-print">
           <button type="button" class="btn-save" onclick="gerarOrcamento()">Calcular Orçamento</button>
-          <button type="button" class="btn-warning" id="btnEnviarReq" onclick="enviarOrcamentoParaRequisicao()" style="display: none;">📋 Gerar Requisição desta Obra</button>
+          <button type="button" class="btn-add" id="btnRegistrarCaixa" onclick="registrarNoCaixa()" style="display: none;">💰 Registrar Obra no Caixa</button>
+          <button type="button" class="btn-warning" id="btnEnviarReq" onclick="enviarOrcamentoParaRequisicao()" style="display: none;">📋 Gerar Requisição</button>
           <button type="button" class="btn-print" id="btnImprimirOrc" onclick="imprimirOrcamento()" style="display: none;">🖨️ PDF Cliente</button>
         </div>
 
         <div class="result-panel" id="painelResultado" style="display: none;">
           <div class="result-item destaque-venda">Valor Total para o Cliente: <strong id="resVenda">R$ 0,00</strong></div>
           <div class="result-item no-print">Custo da Operação: <strong id="resCusto">R$ 0,00</strong></div>
-          <div class="result-item no-print">Lucro Líquido: <strong id="resLucro">R$ 0,00</strong></div>
+          <div class="result-item no-print">Lucro Líquido desta Obra: <strong id="resLucro">R$ 0,00</strong></div>
           <div id="alertaPrejuizo" class="alerta-prejuizo no-print" style="display: none;">
             ⚠️ Atenção: O custo da operação está maior que o valor cobrado do cliente!
           </div>
         </div>
       </div>
 
-      <!-- DIVISÃO DE LUCROS -->
+      <!-- DIVISÃO DE LUCROS DA OBRA ATUAL -->
       <div class="card no-print" id="secaoFinanceira" style="display: none;">
-        <h2>3. Divisão do Lucro Líquido (Regra de Negócio)</h2>
+        <h2>3. Divisão do Lucro desta Obra</h2>
         <div class="grid-4">
           <div class="profit-card dizimo">Dízimo (10%)<span id="divDizimo">R$ 0,00</span></div>
           <div class="profit-card empresa">Empresa (50%)<span id="divEmpresa">R$ 0,00</span></div>
           <div class="profit-card voce">Você (25%)<span id="divVoce">R$ 0,00</span></div>
           <div class="profit-card invest">Investimentos (15%)<span id="divInvest">R$ 0,00</span></div>
         </div>
+      </div>
+
+      <!-- ACÚMULO FINANCEIRO / CAIXA GERAL -->
+      <div class="card no-print">
+        <div class="card-header-flex">
+          <h2>4. Caixa Acumulado (Total de Obras Registradas)</h2>
+          <button type="button" class="btn-remove btn-sm" onclick="limparCaixaCompleto()">Zerar Caixa</button>
+        </div>
+        <p class="subtitle">Soma acumulada de todas as obras registradas no caixa e divisão total por conta:</p>
+
+        <div class="resumo-geral-caixa">
+          <div class="caixa-stat">
+            <span>Faturamento Bruto Acumulado</span>
+            <strong id="acumFaturamento">R$ 0,00</strong>
+          </div>
+          <div class="caixa-stat">
+            <span>Custos Acumulados</span>
+            <strong id="acumCustos">R$ 0,00</strong>
+          </div>
+          <div class="caixa-stat destaque-lucro-acum">
+            <span>Lucro Líquido em Caixa</span>
+            <strong id="acumLucro">R$ 0,00</strong>
+          </div>
+        </div>
+
+        <h3 style="font-size: 15px; color: var(--primary); margin: 18px 0 10px 0;">Saldo Acumulado por Caixinha:</h3>
+        <div class="grid-4">
+          <div class="profit-card dizimo">Caixa Dízimo (10%)<span id="acumDizimo">R$ 0,00</span></div>
+          <div class="profit-card empresa">Caixa Empresa (50%)<span id="acumEmpresa">R$ 0,00</span></div>
+          <div class="profit-card voce">Caixa Você (25%)<span id="acumVoce">R$ 0,00</span></div>
+          <div class="profit-card invest">Caixa Investimentos (15%)<span id="acumInvest">R$ 0,00</span></div>
+        </div>
+
+        <h3 style="font-size: 15px; color: var(--primary); margin: 22px 0 10px 0;">Histórico de Obras no Caixa:</h3>
+        <div id="historicoCaixaContainer"></div>
       </div>
 
     </div>
