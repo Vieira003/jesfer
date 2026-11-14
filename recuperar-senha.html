@@ -1,0 +1,467 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recuperar senha | JESFER</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(
+        135deg,
+        #102c45,
+        #1c3d5a,
+        #3478a6
+      );
+    }
+
+    .card {
+      background: white;
+      width: 100%;
+      max-width: 420px;
+      padding: 32px;
+      border-radius: 16px;
+      box-shadow: 0 15px 40px #0003;
+    }
+
+    h1 {
+      color: #1c3d5a;
+      font-size: 25px;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    h2 {
+      font-size: 20px;
+      color: #1c3d5a;
+    }
+
+    .subtitulo {
+      color: #64748b;
+      text-align: center;
+      font-size: 14px;
+      margin-bottom: 28px;
+    }
+
+    label {
+      display: block;
+      margin-top: 16px;
+      margin-bottom: 7px;
+      font-weight: bold;
+      color: #334155;
+    }
+
+    input {
+      width: 100%;
+      padding: 13px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 22px;
+      padding: 13px;
+      border: none;
+      border-radius: 8px;
+      background: #1c3d5a;
+      color: white;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: .6;
+      cursor: wait;
+    }
+
+    .voltar {
+      display: block;
+      text-align: center;
+      margin-top: 20px;
+      color: #1c3d5a;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .mensagem {
+      margin-top: 18px;
+      font-size: 14px;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="card">
+
+    <h1>JESFER CALHAS E RUFOS</h1>
+
+    <p class="subtitulo">
+      Recuperação de acesso ao sistema
+    </p>
+
+    <!-- SOLICITAR RECUPERAÇÃO -->
+
+    <section id="solicitar">
+
+      <h2>Esqueci minha senha</h2>
+
+      <p>
+        Informe seu e-mail cadastrado para receber
+        um link de redefinição de senha.
+      </p>
+
+      <form id="formSolicitar">
+
+        <label for="email">
+          E-mail
+        </label>
+
+        <input
+          type="email"
+          id="email"
+          placeholder="Digite seu e-mail"
+          autocomplete="email"
+          required
+        >
+
+        <button id="btnEnviar" type="submit">
+          Enviar link de recuperação
+        </button>
+
+      </form>
+
+    </section>
+
+    <!-- CADASTRAR NOVA SENHA -->
+
+    <section id="redefinir" hidden>
+
+      <h2>Criar nova senha</h2>
+
+      <p>
+        Digite e confirme sua nova senha.
+      </p>
+
+      <form id="formRedefinir">
+
+        <label for="novaSenha">
+          Nova senha
+        </label>
+
+        <input
+          type="password"
+          id="novaSenha"
+          minlength="8"
+          autocomplete="new-password"
+          required
+        >
+
+        <label for="confirmarSenha">
+          Confirmar nova senha
+        </label>
+
+        <input
+          type="password"
+          id="confirmarSenha"
+          minlength="8"
+          autocomplete="new-password"
+          required
+        >
+
+        <button id="btnSalvar" type="submit">
+          Salvar nova senha
+        </button>
+
+      </form>
+
+    </section>
+
+    <p id="mensagem" class="mensagem" role="status"></p>
+
+    <a class="voltar" href="index.html">
+      Voltar para o login
+    </a>
+
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+    "use strict";
+
+    const URL_SUPABASE =
+      "https://sthzmyapurueptsbgtvo.supabase.co";
+
+    const CHAVE_SUPABASE =
+      "sb_publishable_ibrL60yyFd2xHPbU1fimaA_38QPAAXg";
+
+    const cliente = window.supabase.createClient(
+      URL_SUPABASE,
+      CHAVE_SUPABASE,
+      {
+        auth: {
+          detectSessionInUrl: true,
+          persistSession: true
+        }
+      }
+    );
+
+    const solicitar =
+      document.getElementById("solicitar");
+
+    const redefinir =
+      document.getElementById("redefinir");
+
+    const mensagem =
+      document.getElementById("mensagem");
+
+    let recuperacaoValida = false;
+
+    function mostrarMensagem(texto, sucesso = false) {
+      mensagem.textContent = texto;
+      mensagem.style.color =
+        sucesso ? "#15803d" : "#b42318";
+    }
+
+    function abrirNovaSenha() {
+      recuperacaoValida = true;
+      solicitar.hidden = true;
+      redefinir.hidden = false;
+      mostrarMensagem("");
+    }
+
+    // Detectar o retorno do link de recuperação
+    cliente.auth.onAuthStateChange((evento) => {
+      if (evento === "PASSWORD_RECOVERY") {
+        abrirNovaSenha();
+      }
+    });
+
+    async function verificarLink() {
+      const url = new URL(window.location.href);
+      const hash = new URLSearchParams(
+        window.location.hash.substring(1)
+      );
+
+      const temErro =
+        url.searchParams.has("error") ||
+        hash.has("error");
+
+      if (temErro) {
+        mostrarMensagem(
+          "Link inválido ou expirado. Solicite outro."
+        );
+        return;
+      }
+
+      // Fluxo PKCE: trocar código por sessão.
+      const codigo = url.searchParams.get("code");
+
+      if (codigo) {
+        const { error } =
+          await cliente.auth.exchangeCodeForSession(
+            codigo
+          );
+
+        if (error) {
+          mostrarMensagem(
+            "Não foi possível validar o link. " +
+            "Solicite outro e-mail."
+          );
+          return;
+        }
+
+        abrirNovaSenha();
+        return;
+      }
+
+      // Fluxo com token na URL.
+      if (hash.get("type") === "recovery") {
+        const { data, error } =
+          await cliente.auth.getSession();
+
+        if (error || !data.session) {
+          mostrarMensagem(
+            "O link não pôde ser validado. " +
+            "Solicite outro e-mail."
+          );
+          return;
+        }
+
+        abrirNovaSenha();
+      }
+    }
+
+    verificarLink();
+
+    // Solicitar e-mail
+    document.getElementById("formSolicitar")
+      .addEventListener("submit", async (evento) => {
+        evento.preventDefault();
+
+        const email =
+          document.getElementById("email")
+            .value.trim();
+
+        const botao =
+          document.getElementById("btnEnviar");
+
+        botao.disabled = true;
+        botao.textContent = "Enviando...";
+
+        try {
+          const destino = new URL(
+            "recuperar-senha.html",
+            window.location.href
+          ).href;
+
+          const { error } =
+            await cliente.auth.resetPasswordForEmail(
+              email,
+              {
+                redirectTo: destino
+              }
+            );
+
+          if (error) {
+            console.error(error);
+
+            mostrarMensagem(
+              "Não foi possível enviar o link. " +
+              "Verifique as configurações do Supabase."
+            );
+            return;
+          }
+
+          mostrarMensagem(
+            "Se o e-mail estiver cadastrado, " +
+            "você receberá um link de recuperação.",
+            true
+          );
+
+        } catch (erro) {
+          console.error(erro);
+          mostrarMensagem("Erro de conexão.");
+        } finally {
+          botao.disabled = false;
+          botao.textContent =
+            "Enviar link de recuperação";
+        }
+      });
+
+    // Salvar nova senha
+    document.getElementById("formRedefinir")
+      .addEventListener("submit", async (evento) => {
+        evento.preventDefault();
+
+        if (!recuperacaoValida) {
+          mostrarMensagem(
+            "Abra um link válido de recuperação."
+          );
+          return;
+        }
+
+        const senha =
+          document.getElementById("novaSenha").value;
+
+        const confirmar =
+          document.getElementById("confirmarSenha").value;
+
+        if (senha.length < 8) {
+          mostrarMensagem(
+            "Use pelo menos 8 caracteres."
+          );
+          return;
+        }
+
+        if (senha !== confirmar) {
+          mostrarMensagem(
+            "As senhas não são iguais."
+          );
+          return;
+        }
+
+        const botao =
+          document.getElementById("btnSalvar");
+
+        botao.disabled = true;
+        botao.textContent = "Salvando...";
+
+        try {
+          const { data } =
+            await cliente.auth.getSession();
+
+          if (!data.session) {
+            mostrarMensagem(
+              "Sessão expirada. Solicite outro link."
+            );
+            return;
+          }
+
+          const { error } =
+            await cliente.auth.updateUser({
+              password: senha
+            });
+
+          if (error) {
+            mostrarMensagem(
+              "Não foi possível salvar: " +
+              error.message
+            );
+            return;
+          }
+
+          await cliente.auth.signOut();
+
+          recuperacaoValida = false;
+
+          document.getElementById(
+            "formRedefinir"
+          ).reset();
+
+          mostrarMensagem(
+            "Senha atualizada com sucesso! " +
+            "Voltando para o login...",
+            true
+          );
+
+          setTimeout(() => {
+            window.location.replace("index.html");
+          }, 1500);
+
+        } catch (erro) {
+          console.error(erro);
+          mostrarMensagem(
+            "Erro ao atualizar a senha."
+          );
+        } finally {
+          botao.disabled = false;
+          botao.textContent = "Salvar nova senha";
+        }
+      });
+  </script>
+
+</body>
+</html>

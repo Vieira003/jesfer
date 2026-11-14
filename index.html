@@ -1,212 +1,1113 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JESFER Calhas e Rufos - Sistema Integrado</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="manifest" href="manifest.json">
+
+  <title>JESFER | Sistema de Gestão</title>
   <meta name="theme-color" content="#1c3d5a">
-  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1067/1067357.png">
+
+  <link rel="stylesheet" href="style.css?v=7">
+
+  <style>
+    [hidden] {
+      display: none !important;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f2f5f9;
+      color: #243447;
+    }
+
+    header {
+      background: #1c3d5a;
+      color: white;
+      padding: 25px;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0 0 8px;
+    }
+
+    .barra-sessao-jesfer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      background: #102b43;
+      color: white;
+      padding: 12px 20px;
+    }
+
+    .main-nav {
+      display: grid !important;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      padding: 14px;
+      background: #e2e8f0;
+    }
+
+    .main-nav button {
+      padding: 14px 10px;
+      border: none;
+      border-radius: 8px;
+      background: #d1dce7;
+      color: #1c3d5a;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .main-nav button.active {
+      background: #1c3d5a;
+      color: white;
+    }
+
+    main {
+      max-width: 1450px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    main > section.aba {
+      display: none !important;
+    }
+
+    main > section.aba.active:not([hidden]) {
+      display: flex !important;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .jesfer-section {
+      background: white;
+      padding: 22px;
+      border-radius: 12px;
+      box-shadow: 0 3px 12px rgba(0,0,0,.05);
+    }
+
+    h2, h3 {
+      color: #1c3d5a;
+    }
+
+    .jesfer-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 12px;
+      margin: 18px 0;
+    }
+
+    .jesfer-summary article,
+    #resumoEstoque article {
+      background: #eef3f8;
+      border-radius: 9px;
+      padding: 18px;
+    }
+
+    .jesfer-summary strong,
+    #resumoEstoque strong {
+      display: block;
+      margin-top: 10px;
+      font-size: 21px;
+      color: #1c3d5a;
+    }
+
+    #resumoEstoque {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin: 15px 0;
+    }
+
+    .jesfer-form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 15px;
+      margin: 16px 0;
+    }
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      font-weight: bold;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 11px;
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .jesfer-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 15px 0;
+    }
+
+    .jesfer-actions button,
+    .barra-sessao-jesfer button {
+      padding: 11px 16px;
+      background: #1c3d5a;
+      color: white;
+      border: none;
+      border-radius: 7px;
+    }
+
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .table-responsive,
+    .jesfer-table-wrap {
+      overflow-x: auto;
+      width: 100%;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 11px;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    th {
+      background: #edf2f7;
+    }
+
+    .estoque-item,
+    .req-card,
+    .agenda-item,
+    .dobra-item {
+      border: 1px solid #dbe3ec;
+      border-radius: 9px;
+      padding: 15px;
+      margin: 12px 0;
+    }
+
+    .estoque-item,
+    .dobra-item {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: end;
+      gap: 12px;
+    }
+
+    .estoque-item > div,
+    .dobra-item > div {
+      flex: 1 1 170px;
+    }
+
+    .estoque-baixo {
+      border-left: 5px solid #e59a27;
+    }
+
+    .agenda-colunas {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .agenda-colunas > div {
+      background: #f8fafc;
+      border-radius: 10px;
+      padding: 15px;
+    }
+
+    #telaLoginJesfer {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .login-jesfer-card {
+      width: 100%;
+      max-width: 420px;
+      padding: 30px;
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 5px 25px rgba(0,0,0,.1);
+    }
+
+    .login-jesfer-card form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .login-jesfer-card button {
+      padding: 13px;
+      border: none;
+      border-radius: 7px;
+      background: #1c3d5a;
+      color: white;
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      color: #64748b;
+    }
+
+    @media(max-width: 850px) {
+      .main-nav {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .agenda-colunas {
+        grid-template-columns: 1fr;
+      }
+
+      main {
+        padding: 10px;
+      }
+    }
+
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
 </head>
+
 <body>
 
-  <header>
-    <h1>JESFER CALHAS E RUFOS</h1>
-    <p>Painel de Orçamentos, Requisições de Obra e Controle de Estoque</p>
-  </header>
+  <!-- LOGIN -->
 
-  <nav class="main-nav no-print">
-    <button type="button" id="navOrcamentos" class="nav-btn active" onclick="mudarAba('abaOrcamentos', this)">1. Orçamentos e Caixa</button>
-    <button type="button" id="navRequisicoes" class="nav-btn" onclick="mudarAba('abaRequisicoes', this)">2. Requisições de Obras</button>
-    <button type="button" id="navEstoque" class="nav-btn" onclick="mudarAba('abaEstoque', this)">3. Controle de Estoque</button>
-  </nav>
+  <section id="telaLoginJesfer">
 
-  <div class="container">
-    
-    <!-- ================= ABA 1: ORÇAMENTOS E FINANCEIRO ================= -->
-    <div id="abaOrcamentos" class="tab-content active">
-      
-      <!-- CONFIGURAÇÃO DINÂMICA DE DOBRAS / CATÁLOGO -->
-      <div class="card no-print">
-        <div class="card-header-flex">
-          <h2>1. Tabela de Preços e Vínculo de Chapa</h2>
-          <span id="statusTabela" class="badge-saved">Salvo automaticamente</span>
-        </div>
-        <p class="subtitle">Cadastre os modelos, valores por metro e qual chapa/material do estoque cada um consome:</p>
-        <div id="dobrasContainer" class="dobras-list"></div>
-        <div class="actions-group">
-          <button type="button" class="btn-add" onclick="adicionarCampoDobra()">+ Adicionar Nova Dobra/Modelo</button>
-          <button type="button" class="btn-save" onclick="salvarTabela(true)">Salvar Tabela</button>
-        </div>
+    <div class="login-jesfer-card">
+
+      <h1>JESFER CALHAS E RUFOS</h1>
+      <p>Sistema Integrado de Gestão</p>
+
+      <form id="formLoginJesfer">
+
+        <label for="emailJesfer">E-mail</label>
+        <input
+          id="emailJesfer"
+          type="email"
+          autocomplete="username"
+          required
+        >
+
+        <label for="senhaJesfer">Senha</label>
+        <input
+          id="senhaJesfer"
+          type="password"
+          autocomplete="current-password"
+          required
+        >
+
+        <button id="btnEntrarJesfer" type="submit">
+          Entrar
+        </button>
+
+      </form>
+
+      <p id="mensagemLoginJesfer" role="status"></p>
+
+      <p>Acesso restrito aos usuários autorizados.</p>
+
+    </div>
+
+  </section>
+
+  <!-- PAINEL -->
+
+  <div id="painelJesfer" hidden>
+
+    <div class="barra-sessao-jesfer no-print">
+      <div>
+        <strong>JESFER | Administração</strong>
+        <div id="usuarioLogadoJesfer"></div>
       </div>
 
-      <!-- GERADOR DE ORÇAMENTO MULTI-ITEMS -->
-      <div class="card">
-        <div class="print-only-header">
-          <h2>ORÇAMENTO DE SERVIÇOS E MATERIAIS</h2>
+      <button type="button" id="btnSairJesfer">
+        Sair do sistema
+      </button>
+    </div>
+
+    <header>
+      <h1>JESFER CALHAS E RUFOS</h1>
+      <p>Sistema Integrado de Gestão Empresarial</p>
+    </header>
+
+    <nav class="main-nav no-print">
+
+      <button
+        id="navOrcamentos"
+        type="button"
+        class="nav-btn active"
+        onclick="mudarAba('abaOrcamentos',this)">
+        1. Gestão Financeira
+      </button>
+
+      <button
+        id="navRequisicoes"
+        type="button"
+        class="nav-btn"
+        onclick="mudarAba('abaRequisicoes',this)">
+        2. Requisições de Obras
+      </button>
+
+      <button
+        id="navEstoque"
+        type="button"
+        class="nav-btn"
+        onclick="mudarAba('abaEstoque',this)">
+        3. Controle de Estoque
+      </button>
+
+      <button
+        id="navFazerOrcamento"
+        type="button"
+        class="nav-btn"
+        onclick="mudarAba('abaFazerOrcamento',this)">
+        4. Fazer Orçamento
+      </button>
+
+      <button
+        id="navAgenda"
+        type="button"
+        class="nav-btn"
+        onclick="mudarAba('abaAgenda',this)">
+        5. Agenda
+      </button>
+
+    </nav>
+
+    <main>
+
+      <!-- ABA 1: FINANCEIRO -->
+
+      <section id="abaOrcamentos" class="aba active">
+
+        <div class="jesfer-section">
+
+          <h2>Gestão Financeira</h2>
+
+          <p>
+            Entradas, saídas, contas a pagar
+            e contas a receber.
+          </p>
+
+          <div class="jesfer-summary">
+
+            <article>
+              Total recebido
+              <strong id="finRecebido">R$ 0,00</strong>
+            </article>
+
+            <article>
+              Total pago
+              <strong id="finPago">R$ 0,00</strong>
+            </article>
+
+            <article>
+              Saldo de caixa
+              <strong id="finSaldo">R$ 0,00</strong>
+            </article>
+
+            <article>
+              A receber
+              <strong id="finAReceber">R$ 0,00</strong>
+            </article>
+
+            <article>
+              A pagar
+              <strong id="finAPagar">R$ 0,00</strong>
+            </article>
+
+          </div>
+
+          <!-- Os gráficos são criados por graficos.js -->
+
+          <h3>Novo lançamento financeiro</h3>
+
+          <form id="finForm">
+
+            <div class="jesfer-form-grid">
+
+              <label>
+                Tipo
+                <select id="finTipo" required>
+                  <option value="receber">
+                    Conta a receber
+                  </option>
+                  <option value="pagar">
+                    Conta a pagar
+                  </option>
+                </select>
+              </label>
+
+              <label>
+                Categoria
+                <select id="finCategoria" required>
+                  <option value="Materiais">Materiais</option>
+                  <option value="Mão de obra">Mão de obra</option>
+                  <option value="Transporte">Transporte</option>
+                  <option value="Alimentação">Alimentação</option>
+                  <option value="Impostos">Impostos</option>
+                  <option value="Despesas fixas">Despesas fixas</option>
+                  <option value="Serviços">Serviços</option>
+                  <option value="Obras">Obras</option>
+                  <option value="Outros">Outros</option>
+                </select>
+              </label>
+
+              <label>
+                Descrição
+                <input
+                  id="finDescricao"
+                  type="text"
+                  maxlength="250"
+                  required
+                >
+              </label>
+
+              <label>
+                Valor (R$)
+                <input
+                  id="finValor"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  required
+                >
+              </label>
+
+              <label>
+                Vencimento
+                <input id="finVencimento" type="date">
+              </label>
+
+            </div>
+
+            <div class="jesfer-actions">
+              <button id="finSalvar" type="submit">
+                Salvar lançamento
+              </button>
+            </div>
+
+          </form>
+
+          <p id="finMensagem" role="status"></p>
+
+        </div>
+
+        <div class="jesfer-section">
+
+          <h2>Movimentações financeiras</h2>
+
+          <div class="jesfer-form-grid">
+
+            <label>
+              Filtrar por tipo
+              <select id="finFiltro">
+                <option value="todos">Todos</option>
+                <option value="receber">A receber</option>
+                <option value="pagar">A pagar</option>
+              </select>
+            </label>
+
+            <label>
+              Pesquisar
+              <input
+                id="finBusca"
+                type="search"
+                placeholder="Pesquisar descrição"
+              >
+            </label>
+
+          </div>
+
+          <div class="jesfer-actions">
+
+            <button id="finAtualizar" type="button">
+              Atualizar financeiro
+            </button>
+
+            <button id="finExportar" type="button">
+              Exportar financeiro CSV
+            </button>
+
+          </div>
+
+          <div class="table-responsive">
+            <table>
+
+              <thead>
+                <tr>
+                  <th>Descrição</th>
+                  <th>Categoria</th>
+                  <th>Tipo</th>
+                  <th>Valor</th>
+                  <th>Pago / Recebido</th>
+                  <th>Restante</th>
+                  <th>Vencimento</th>
+                  <th>Situação</th>
+                  <th>Ação</th>
+                </tr>
+              </thead>
+
+              <tbody id="finTabela"></tbody>
+
+            </table>
+          </div>
+
+        </div>
+
+        <div class="jesfer-section">
+
+          <h3>Histórico local de orçamentos</h3>
+
+          <p>
+            Os orçamentos deste histórico não são
+            contabilizados como dinheiro recebido.
+          </p>
+
+          <div id="historicoCaixaContainer"></div>
+
+        </div>
+
+      </section>
+
+      <!-- ABA 2: REQUISIÇÕES -->
+
+      <section id="abaRequisicoes" class="aba" hidden>
+
+        <div class="jesfer-section">
+
+          <h2>Nova Requisição de Obra</h2>
+
+          <div class="jesfer-form-grid">
+
+            <label>
+              Obra / Cliente
+              <input id="reqObra" type="text">
+            </label>
+
+            <label>
+              Responsável
+              <input id="reqResponsavel" type="text">
+            </label>
+
+            <label>
+              Data
+              <input id="reqData" type="date">
+            </label>
+
+            <label>
+              Observações
+              <textarea id="reqObs" rows="3"></textarea>
+            </label>
+
+          </div>
+
+          <h3>Materiais solicitados</h3>
+
+          <div id="reqItensContainer"></div>
+
+          <div class="jesfer-actions">
+
+            <button
+              type="button"
+              onclick="adicionarItemFormRequisicao()">
+              Adicionar material
+            </button>
+
+            <button
+              type="button"
+              onclick="salvarNovaRequisicao()">
+              Salvar requisição
+            </button>
+
+          </div>
+
+        </div>
+
+        <div class="jesfer-section" id="areaListaRequisicoes">
+
+          <h2>Requisições registradas</h2>
+
+          <div id="listaRequisicoesSalvas"></div>
+
+        </div>
+
+        <div id="areaImpressaoRequisicao" hidden></div>
+
+      </section>
+
+      <!-- ABA 3: ESTOQUE -->
+
+      <section id="abaEstoque" class="aba" hidden>
+
+        <div class="jesfer-section">
+
+          <h2>Controle de Estoque</h2>
+
+          <p id="statusEstoque"></p>
+
+          <div id="resumoEstoque"></div>
+
+          <div id="alertasEstoque"></div>
+
+          <div class="jesfer-actions">
+
+            <button
+              type="button"
+              onclick="adicionarItemEstoque()">
+              Adicionar material
+            </button>
+
+            <button
+              type="button"
+              onclick="salvarEstoque(true)">
+              Salvar estoque
+            </button>
+
+            <button
+              type="button"
+              onclick="exportarBackupJesfer()">
+              Exportar backup JSON
+            </button>
+
+          </div>
+
+          <h3>Materiais cadastrados</h3>
+
+          <div id="estoqueContainer"></div>
+
+        </div>
+
+        <div class="jesfer-section">
+
+          <h2>Movimentação de Estoque</h2>
+
+          <div class="jesfer-form-grid">
+
+            <label>
+              Material
+              <select id="movProduto">
+                <option value="">Selecione</option>
+              </select>
+            </label>
+
+            <label>
+              Operação
+              <select id="movTipo">
+                <option value="entrada">Entrada</option>
+                <option value="saida">Saída</option>
+                <option value="ajuste">Ajuste de saldo</option>
+              </select>
+            </label>
+
+            <label>
+              Quantidade
+              <input
+                id="movQuantidade"
+                type="number"
+                min="0"
+                step="0.01"
+              >
+            </label>
+
+            <label>
+              Motivo / Obra
+              <input id="movMotivo" type="text">
+            </label>
+
+          </div>
+
+          <div class="jesfer-actions">
+
+            <button
+              type="button"
+              onclick="registrarMovimentacaoEstoque()">
+              Registrar movimentação
+            </button>
+
+          </div>
+
+        </div>
+
+        <div class="jesfer-section">
+
+          <h2>Relatórios de Estoque</h2>
+
+          <div class="jesfer-form-grid">
+
+            <label>
+              Data inicial
+              <input id="relInicio" type="date">
+            </label>
+
+            <label>
+              Data final
+              <input id="relFim" type="date">
+            </label>
+
+          </div>
+
+          <div class="jesfer-actions">
+
+            <button
+              type="button"
+              onclick="gerarRelatorioSemanal()">
+              Gerar relatório
+            </button>
+
+            <button
+              type="button"
+              onclick="exportarHistoricoCSV()">
+              Exportar CSV
+            </button>
+
+            <button
+              type="button"
+              onclick="imprimirRelatorioEstoque()">
+              Imprimir
+            </button>
+
+          </div>
+
+          <div id="relatorioEstoque"></div>
+
+          <h3>Histórico de movimentações</h3>
+
+          <div id="historicoEstoque" class="jesfer-table-wrap"></div>
+
+        </div>
+
+      </section>
+
+      <!-- ABA 4: ORÇAMENTOS -->
+
+      <section id="abaFazerOrcamento" class="aba" hidden>
+
+        <div class="jesfer-section">
+
+          <h2>Tabela de Serviços e Dobras</h2>
+
+          <p id="statusTabela"></p>
+
+          <div id="dobrasContainer"></div>
+
+          <div class="jesfer-actions">
+
+            <button
+              type="button"
+              onclick="adicionarCampoDobra()">
+              Adicionar serviço
+            </button>
+
+            <button
+              type="button"
+              onclick="salvarTabela(true)">
+              Salvar tabela
+            </button>
+
+          </div>
+
+        </div>
+
+        <div class="jesfer-section">
+
+          <h2>Fazer Novo Orçamento</h2>
+
+          <div class="jesfer-form-grid">
+
+            <label>
+              Nome do cliente
+              <input id="nomeCliente" type="text">
+            </label>
+
+          </div>
+
           <p id="dataOrcamento"></p>
-        </div>
 
-        <h2 class="no-print">2. Gerador de Orçamentos (Itens da Obra)</h2>
-        <p class="subtitle no-print">Adicione quantas dobras forem necessárias para a mesma obra:</p>
-        
-        <div class="cliente-box">
-          <label for="nomeCliente">Nome do Cliente / Obra:</label>
-          <input type="text" id="nomeCliente" placeholder="Ex: João Silva - Residência Centro">
-        </div>
+          <h3>Serviços do orçamento</h3>
 
-        <div id="itensObraContainer" class="dobras-list"></div>
+          <div id="itensObraContainer"></div>
 
-        <button type="button" class="btn-add no-print" onclick="adicionarItemObra()" style="margin-bottom: 20px;">+ Adicionar Dobra a Esta Obra</button>
+          <div class="jesfer-actions">
 
-        <div class="no-print" style="margin-bottom: 15px;">
-          <label for="custoTotal">Custo Total de Material/Mão de Obra da Operação (R$):</label>
-          <input type="number" id="custoTotal" placeholder="Ex: 1500.00" step="0.01">
-        </div>
+            <button
+              type="button"
+              onclick="adicionarItemObra()">
+              Adicionar serviço
+            </button>
 
-        <div class="actions-group no-print">
-          <button type="button" class="btn-save" onclick="gerarOrcamento()">Calcular Orçamento</button>
-          <button type="button" class="btn-add" id="btnRegistrarCaixa" onclick="registrarNoCaixa()" style="display: none;">💰 Registrar Obra no Caixa</button>
-          <button type="button" class="btn-warning" id="btnEnviarReq" onclick="enviarOrcamentoParaRequisicao()" style="display: none;">📋 Gerar Requisição</button>
-          <button type="button" class="btn-print" id="btnImprimirOrc" onclick="imprimirOrcamento()" style="display: none;">🖨️ PDF Cliente</button>
-        </div>
-
-        <div class="result-panel" id="painelResultado" style="display: none;">
-          <div class="result-item destaque-venda">Valor Total para o Cliente: <strong id="resVenda">R$ 0,00</strong></div>
-          <div class="result-item no-print">Custo da Operação: <strong id="resCusto">R$ 0,00</strong></div>
-          <div class="result-item no-print">Lucro Líquido desta Obra: <strong id="resLucro">R$ 0,00</strong></div>
-          <div id="alertaPrejuizo" class="alerta-prejuizo no-print" style="display: none;">
-            ⚠️ Atenção: O custo da operação está maior que o valor cobrado do cliente!
           </div>
-        </div>
-      </div>
 
-      <!-- DIVISÃO DE LUCROS DA OBRA ATUAL -->
-      <div class="card no-print" id="secaoFinanceira" style="display: none;">
-        <h2>3. Divisão do Lucro desta Obra</h2>
-        <div class="grid-4">
-          <div class="profit-card dizimo">Dízimo (10%)<span id="divDizimo">R$ 0,00</span></div>
-          <div class="profit-card empresa">Empresa (50%)<span id="divEmpresa">R$ 0,00</span></div>
-          <div class="profit-card voce">Você (25%)<span id="divVoce">R$ 0,00</span></div>
-          <div class="profit-card invest">Investimentos (15%)<span id="divInvest">R$ 0,00</span></div>
-        </div>
-      </div>
+          <div class="jesfer-form-grid">
 
-      <!-- ACÚMULO FINANCEIRO / CAIXA GERAL -->
-      <div class="card no-print">
-        <div class="card-header-flex">
-          <h2>4. Caixa Acumulado (Total de Obras Registradas)</h2>
-          <button type="button" class="btn-remove btn-sm" onclick="limparCaixaCompleto()">Zerar Caixa</button>
-        </div>
-        <p class="subtitle">Soma acumulada de todas as obras registradas no caixa e divisão total por conta:</p>
+            <label>
+              Custo total da obra (R$)
+              <input
+                id="custoTotal"
+                type="number"
+                min="0"
+                step="0.01"
+                value="0"
+              >
+            </label>
 
-        <div class="resumo-geral-caixa">
-          <div class="caixa-stat">
-            <span>Faturamento Bruto Acumulado</span>
-            <strong id="acumFaturamento">R$ 0,00</strong>
           </div>
-          <div class="caixa-stat">
-            <span>Custos Acumulados</span>
-            <strong id="acumCustos">R$ 0,00</strong>
+
+          <div class="jesfer-actions">
+
+            <button
+              id="btnGerarOrcamento"
+              type="button"
+              onclick="gerarOrcamento()">
+              Calcular orçamento
+            </button>
+
+            <button
+              id="btnRegistrarCaixa"
+              type="button"
+              onclick="registrarNoCaixa()"
+              disabled>
+              Salvar no histórico
+            </button>
+
+            <button
+              id="btnEnviarReq"
+              type="button"
+              onclick="enviarOrcamentoParaRequisicao()">
+              Enviar para requisição
+            </button>
+
+            <button
+              id="btnImprimirOrc"
+              type="button"
+              onclick="imprimirOrcamento()">
+              Imprimir orçamento
+            </button>
+
           </div>
-          <div class="caixa-stat destaque-lucro-acum">
-            <span>Lucro Líquido em Caixa</span>
-            <strong id="acumLucro">R$ 0,00</strong>
+
+          <div id="painelResultado">
+
+            <h3>Resultado do Orçamento</h3>
+
+            <div class="jesfer-summary">
+
+              <article>
+                Valor da venda
+                <strong id="resVenda">R$ 0,00</strong>
+              </article>
+
+              <article>
+                Custo da obra
+                <strong id="resCusto">R$ 0,00</strong>
+              </article>
+
+              <article>
+                Lucro estimado
+                <strong id="resLucro">R$ 0,00</strong>
+              </article>
+
+            </div>
+
+            <p id="alertaPrejuizo"></p>
+
           </div>
+
         </div>
 
-        <h3 style="font-size: 15px; color: var(--primary); margin: 18px 0 10px 0;">Saldo Acumulado por Caixinha:</h3>
-        <div class="grid-4">
-          <div class="profit-card dizimo">Caixa Dízimo (10%)<span id="acumDizimo">R$ 0,00</span></div>
-          <div class="profit-card empresa">Caixa Empresa (50%)<span id="acumEmpresa">R$ 0,00</span></div>
-          <div class="profit-card voce">Caixa Você (25%)<span id="acumVoce">R$ 0,00</span></div>
-          <div class="profit-card invest">Caixa Investimentos (15%)<span id="acumInvest">R$ 0,00</span></div>
-        </div>
+        <div class="jesfer-section" id="secaoFinanceira">
 
-        <h3 style="font-size: 15px; color: var(--primary); margin: 22px 0 10px 0;">Histórico de Obras no Caixa:</h3>
-        <div id="historicoCaixaContainer"></div>
-      </div>
+          <h2>Distribuição do Lucro Estimado</h2>
 
-    </div>
+          <div class="jesfer-summary">
 
-    <!-- ================= ABA 2: REQUISIÇÕES DE OBRAS ================= -->
-    <div id="abaRequisicoes" class="tab-content">
-      
-      <!-- FORMULÁRIO DE NOVA REQUISIÇÃO -->
-      <div class="card no-print">
-        <h2>Nova Requisição de Materiais para Obra</h2>
-        <p class="subtitle">Monte a lista de chapas, parafusos, buchas e selantes que vão sair do estoque para a instalação:</p>
+            <article>
+              Dízimo — 10%
+              <strong id="divDizimo">R$ 0,00</strong>
+            </article>
 
-        <div class="grid-3">
-          <div>
-            <label for="reqObra">Nome da Obra / Cliente *</label>
-            <input type="text" id="reqObra" placeholder="Ex: Obra Sr. Carlos - Centro">
+            <article>
+              Empresa — 50%
+              <strong id="divEmpresa">R$ 0,00</strong>
+            </article>
+
+            <article>
+              Retirada pessoal — 25%
+              <strong id="divVoce">R$ 0,00</strong>
+            </article>
+
+            <article>
+              Investimentos — 15%
+              <strong id="divInvest">R$ 0,00</strong>
+            </article>
+
           </div>
-          <div>
-            <label for="reqResponsavel">Instalador / Responsável</label>
-            <input type="text" id="reqResponsavel" placeholder="Ex: Equipe 01 / Marcos">
+
+        </div>
+
+      </section>
+
+      <!-- ABA 5: AGENDA -->
+
+      <section id="abaAgenda" class="aba" hidden>
+
+        <div class="jesfer-section">
+
+          <h2>Agenda JESFER</h2>
+
+          <p>
+            Agendamentos de visitas, orçamentos
+            e execução de obras.
+          </p>
+
+          <h3>Novo agendamento</h3>
+
+          <form id="agendaForm">
+
+            <div class="jesfer-form-grid">
+
+              <label>
+                Tipo
+                <select id="agendaTipo" required>
+                  <option value="visita">
+                    Visita / Orçamento
+                  </option>
+                  <option value="obra">
+                    Execução de Obra
+                  </option>
+                </select>
+              </label>
+
+              <label>
+                Título
+                <input
+                  id="agendaTitulo"
+                  type="text"
+                  required
+                  placeholder="Ex.: Visita ao cliente"
+                >
+              </label>
+
+              <label>
+                Início
+                <input
+                  id="agendaInicio"
+                  type="datetime-local"
+                  required
+                >
+              </label>
+
+              <label>
+                Término
+                <input
+                  id="agendaFim"
+                  type="datetime-local"
+                  required
+                >
+              </label>
+
+              <label>
+                Descrição / Observações
+                <textarea
+                  id="agendaDescricao"
+                  rows="3"></textarea>
+              </label>
+
+            </div>
+
+            <div class="jesfer-actions">
+
+              <button id="agendaSalvar" type="submit">
+                Salvar agendamento
+              </button>
+
+              <button id="agendaAtualizar" type="button">
+                Atualizar agenda
+              </button>
+
+            </div>
+
+          </form>
+
+          <p id="agendaMensagem" role="status"></p>
+
+        </div>
+
+        <div class="jesfer-section">
+
+          <h2>Agendamentos registrados</h2>
+
+          <div class="agenda-colunas">
+
+            <div>
+              <h3>Visitas e Orçamentos</h3>
+              <div id="agendaVisitas"></div>
+            </div>
+
+            <div>
+              <h3>Execução de Obras</h3>
+              <div id="agendaObras"></div>
+            </div>
+
           </div>
-          <div>
-            <label for="reqData">Data de Saída</label>
-            <input type="date" id="reqData">
-          </div>
+
         </div>
 
-        <div style="margin-bottom: 15px;">
-          <label for="reqObs">Observações / Detalhes de Corte:</label>
-          <input type="text" id="reqObs" placeholder="Ex: Levar escada grande e extensão de 20m">
-        </div>
+      </section>
 
-        <h3 style="font-size: 15px; color: var(--primary); margin-bottom: 10px;">Materiais Solicitados do Estoque:</h3>
-        <div id="reqItensContainer" class="dobras-list"></div>
+    </main>
 
-        <div class="actions-group">
-          <button type="button" class="btn-add" onclick="adicionarItemFormRequisicao()">+ Adicionar Material à Lista</button>
-          <button type="button" class="btn-save" onclick="salvarNovaRequisicao()">Salvar Requisição (Pendente)</button>
-        </div>
-      </div>
-
-      <!-- HISTÓRICO E LISTA DE REQUISIÇÕES SALVAS -->
-      <div class="card" id="areaListaRequisicoes">
-        <div class="card-header-flex no-print">
-          <h2>Requisições Registradas (Separação e Baixa)</h2>
-        </div>
-        <p class="subtitle no-print">Confira as listas pendentes, imprima a ordem de separação ou confirme a saída para descontar do estoque:</p>
-        
-        <div id="listaRequisicoesSalvas" class="requisicoes-grid"></div>
-      </div>
-
-    </div>
-
-    <!-- ================= ABA 3: CONTROLE DE ESTOQUE ================= -->
-    <div id="abaEstoque" class="tab-content">
-      <div class="card">
-        <div class="card-header-flex">
-          <h2>Controle Geral de Materiais e Insumos</h2>
-          <span id="statusEstoque" class="badge-saved">Salvo automaticamente</span>
-        </div>
-        <p class="subtitle">Saldo atualizado automaticamente pelas baixas de requisições ou ajustes manuais:</p>
-        
-        <div id="estoqueContainer" class="estoque-list"></div>
-
-        <div class="actions-group no-print" style="margin-top: 15px;">
-          <button type="button" class="btn-add" onclick="adicionarItemEstoque()">+ Adicionar Novo Material</button>
-          <button type="button" class="btn-save" onclick="salvarEstoque(true)">Salvar Estoque</button>
-        </div>
-      </div>
-    </div>
+    <footer>
+      JESFER Calhas e Rufos
+      | Sistema Integrado de Gestão
+    </footer>
 
   </div>
 
-  <!-- ÁREA OCULTA EXCLUSIVA PARA IMPRESSÃO DE ORDEM DE SEPARAÇÃO -->
-  <div id="areaImpressaoRequisicao" class="print-req-sheet"></div>
+  <!-- BIBLIOTECAS -->
 
-  <script src="script.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js');
-    }
+  <script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
   </script>
+
+  <!-- AUTENTICAÇÃO -->
+  <script src="supabase.js?v=7"></script>
+
+  <!-- GRÁFICOS -->
+  <script src="graficos.js?v=3"></script>
+
+  <!--
+    O supabase.js deve carregar script.js
+    após a autenticação.
+
+    Não inclua script.js novamente aqui
+    se o supabase.js já estiver fazendo isso.
+  -->
+
 </body>
 </html>
