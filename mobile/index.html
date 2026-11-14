@@ -5,15 +5,30 @@
   <meta charset="UTF-8">
   <meta name="viewport"
         content="width=device-width, initial-scale=1, viewport-fit=cover">
+
   <meta name="theme-color" content="#073b86">
   <meta name="description"
         content="JESFER Mobile - Gestão de Calhas e Rufos">
 
   <title>JESFER Mobile</title>
 
-  <link rel="stylesheet" href="style.css">
+  <!-- INSTALAÇÃO ANDROID E IPHONE -->
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/png" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="JESFER">
+
+  <!-- ESTILOS -->
+  <link rel="stylesheet" href="./style.css">
+
+  <!-- SUPABASE -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js" defer></script>
+
+  <!-- JAVASCRIPT -->
+  <script src="./app.js" defer></script>
 </head>
 
 <body>
@@ -323,7 +338,7 @@
               na próxima etapa.
             </p>
           </div>
-        </article>
+        </div>
       </section>
 
       <!-- MENU PRINCIPAL -->
@@ -485,6 +500,24 @@
   >
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- REGISTRO DO APLICATIVO INSTALÁVEL -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker
+          .register("/mobile/sw.js", {
+            scope: "/mobile/"
+          })
+          .then(() => {
+            console.log("JESFER Mobile PWA registrado!");
+          })
+          .catch((erro) => {
+            console.error("Erro ao registrar PWA:", erro);
+          });
+      });
+    }
+  </script>
 
 </body>
 </html>
