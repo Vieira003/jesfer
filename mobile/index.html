@@ -1,0 +1,490 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#073b86">
+  <meta name="description"
+        content="JESFER Mobile - Gestão de Calhas e Rufos">
+
+  <title>JESFER Mobile</title>
+
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js" defer></script>
+</head>
+
+<body>
+
+  <!-- TELA DE LOGIN -->
+  <section id="telaLogin" class="tela-login">
+    <div class="login-topo">
+      <div class="login-marca">
+        <div class="marca-telhado">
+          <span class="material-icon">roofing</span>
+        </div>
+
+        <h1>JESFER</h1>
+        <h2>Calhas e Rufos</h2>
+
+        <p>
+          Gestão de Obras, Financeiro,
+          Estoque e Atendimento
+        </p>
+      </div>
+    </div>
+
+    <div class="login-conteudo">
+      <form id="formLogin" class="login-formulario">
+        <label for="emailLogin">E-mail</label>
+
+        <div class="campo-icone">
+          <span class="material-icon">person</span>
+          <input
+            type="email"
+            id="emailLogin"
+            placeholder="Digite seu e-mail"
+            autocomplete="email"
+            required
+          >
+        </div>
+
+        <label for="senhaLogin">Senha</label>
+
+        <div class="campo-icone">
+          <span class="material-icon">lock</span>
+          <input
+            type="password"
+            id="senhaLogin"
+            placeholder="Digite sua senha"
+            autocomplete="current-password"
+            required
+          >
+
+          <button
+            type="button"
+            id="mostrarSenha"
+            class="botao-olho"
+            aria-label="Mostrar ou ocultar senha"
+          >
+            <span class="material-icon">visibility</span>
+          </button>
+        </div>
+
+        <button type="submit" id="btnLogin" class="btn-entrar">
+          <span class="material-icon">login</span>
+          Entrar
+        </button>
+
+        <p id="mensagemLogin" class="mensagem-login"
+           role="status" aria-live="polite"></p>
+      </form>
+
+      <div class="login-atalhos">
+        <div>
+          <span class="material-icon">engineering</span>
+          <span>Obras</span>
+        </div>
+
+        <div>
+          <span class="material-icon">layers</span>
+          <span>Estoque</span>
+        </div>
+
+        <div>
+          <span class="material-icon">bar_chart</span>
+          <span>Financeiro</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="login-rodape">
+      <span>JESFER Mobile • Versão 1.0</span>
+    </div>
+  </section>
+
+  <!-- APLICATIVO -->
+  <div id="aplicativo" class="aplicativo oculto">
+
+    <!-- CABEÇALHO -->
+    <header class="app-header">
+      <div class="header-conteudo">
+        <button
+          id="btnMenu"
+          class="header-botao"
+          aria-label="Abrir menu"
+        >
+          <span class="material-icon">menu</span>
+        </button>
+
+        <div class="header-marca">
+          <strong>JESFER</strong>
+          <small>Calhas e Rufos</small>
+        </div>
+
+        <div class="header-acoes">
+          <button
+            id="btnNotificacoes"
+            class="header-botao"
+            aria-label="Notificações"
+          >
+            <span class="material-icon">notifications</span>
+          </button>
+
+          <button
+            id="btnPerfil"
+            class="header-botao perfil-botao"
+            aria-label="Perfil"
+          >
+            <span class="material-icon">account_circle</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="app-conteudo">
+
+      <!-- INÍCIO -->
+      <section id="paginaInicio" class="pagina ativa">
+        <div class="boas-vindas">
+          <div>
+            <h2>
+              <span class="material-icon">engineering</span>
+              Olá, Administrador!
+            </h2>
+
+            <p>Bem-vindo à JESFER.</p>
+          </div>
+
+          <span id="dataAtual" class="data-atual">--/--/----</span>
+        </div>
+
+        <!-- INDICADORES -->
+        <div class="indicadores-grid">
+
+          <article class="indicador indicador-verde">
+            <div class="indicador-icone">
+              <span class="material-icon">payments</span>
+            </div>
+
+            <span>Total Pago</span>
+            <strong id="totalPago">R$ 0,00</strong>
+          </article>
+
+          <article class="indicador indicador-vermelho">
+            <div class="indicador-icone">
+              <span class="material-icon">credit_card</span>
+            </div>
+
+            <span>A Pagar</span>
+            <strong id="totalAPagar">R$ 0,00</strong>
+          </article>
+
+          <article class="indicador indicador-azul">
+            <div class="indicador-icone">
+              <span class="material-icon">bar_chart</span>
+            </div>
+
+            <span>Saldo de Caixa</span>
+            <strong id="saldoCaixa">R$ 0,00</strong>
+          </article>
+
+          <article class="indicador indicador-roxo">
+            <div class="indicador-icone">
+              <span class="material-icon">layers</span>
+            </div>
+
+            <span>Em Estoque</span>
+            <strong id="totalEstoque">--</strong>
+          </article>
+
+        </div>
+
+        <!-- GRÁFICO -->
+        <article class="painel-card">
+          <div class="painel-titulo">
+            <h3>
+              <span class="material-icon">donut_large</span>
+              Despesas por Categoria
+            </h3>
+          </div>
+
+          <div class="grafico-container">
+            <div class="grafico-rosca">
+              <canvas
+                id="graficoDespesas"
+                aria-label="Gráfico de despesas por categoria"
+              ></canvas>
+            </div>
+
+            <div id="legendaDespesas" class="grafico-legenda">
+              <p>Carregando dados...</p>
+            </div>
+          </div>
+        </article>
+
+        <!-- AGENDAMENTOS -->
+        <article class="painel-card">
+          <div class="painel-titulo">
+            <h3>
+              <span class="material-icon">event</span>
+              Próximos Agendamentos
+            </h3>
+
+            <button
+              type="button"
+              class="link-acao"
+              data-pagina="paginaAgenda"
+            >
+              Ver agenda
+            </button>
+          </div>
+
+          <div id="proximosAgendamentos"
+               class="lista-agendamentos">
+            <p class="estado-vazio">
+              Carregando agendamentos...
+            </p>
+          </div>
+        </article>
+      </section>
+
+      <!-- OBRAS -->
+      <section id="paginaObras" class="pagina">
+        <div class="pagina-cabecalho">
+          <h2>Obras</h2>
+          <p>Gerencie os serviços da JESFER.</p>
+        </div>
+
+        <div class="painel-card">
+          <div class="painel-titulo">
+            <h3>Obras e Requisições</h3>
+          </div>
+
+          <div id="listaObras">
+            <p class="estado-vazio">
+              O módulo de obras será conectado
+              na próxima etapa.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- FINANCEIRO -->
+      <section id="paginaFinanceiro" class="pagina">
+        <div class="pagina-cabecalho">
+          <h2>Gestão Financeira</h2>
+          <p>Controle de receitas e despesas.</p>
+        </div>
+
+        <div class="indicadores-grid">
+          <article class="indicador indicador-verde">
+            <span>Recebido</span>
+            <strong id="financeiroRecebido">R$ 0,00</strong>
+          </article>
+
+          <article class="indicador indicador-vermelho">
+            <span>Pago</span>
+            <strong id="financeiroPago">R$ 0,00</strong>
+          </article>
+        </div>
+
+        <article class="painel-card">
+          <div class="painel-titulo">
+            <h3>Últimos Lançamentos</h3>
+          </div>
+
+          <div id="listaFinanceiro">
+            <p class="estado-vazio">
+              Carregando lançamentos...
+            </p>
+          </div>
+        </article>
+      </section>
+
+      <!-- ESTOQUE -->
+      <section id="paginaEstoque" class="pagina">
+        <div class="pagina-cabecalho">
+          <h2>Controle de Estoque</h2>
+          <p>Materiais, entradas e saídas.</p>
+        </div>
+
+        <article class="painel-card">
+          <div class="painel-titulo">
+            <h3>Materiais Cadastrados</h3>
+          </div>
+
+          <div id="listaEstoque">
+            <p class="estado-vazio">
+              O módulo de estoque será conectado
+              na próxima etapa.
+            </p>
+          </div>
+        </article>
+      </section>
+
+      <!-- MENU PRINCIPAL -->
+      <section id="paginaMais" class="pagina">
+        <div class="pagina-cabecalho">
+          <h2>Menu Principal</h2>
+          <p>Acesse todas as funcionalidades.</p>
+        </div>
+
+        <div class="menu-lista">
+
+          <button class="menu-item" data-pagina="paginaFinanceiro">
+            <span class="menu-icone menu-azul">
+              <span class="material-icon">bar_chart</span>
+            </span>
+
+            <span class="menu-texto">
+              <strong>Gestão Financeira</strong>
+              <small>Lançamentos, pagamentos e relatórios</small>
+            </span>
+
+            <span class="material-icon">chevron_right</span>
+          </button>
+
+          <button class="menu-item" data-pagina="paginaObras">
+            <span class="menu-icone menu-verde">
+              <span class="material-icon">shopping_cart</span>
+            </span>
+
+            <span class="menu-texto">
+              <strong>Requisições de Materiais</strong>
+              <small>Solicitações e acompanhamento</small>
+            </span>
+
+            <span class="material-icon">chevron_right</span>
+          </button>
+
+          <button class="menu-item" data-pagina="paginaEstoque">
+            <span class="menu-icone menu-laranja">
+              <span class="material-icon">layers</span>
+            </span>
+
+            <span class="menu-texto">
+              <strong>Controle de Estoque</strong>
+              <small>Entradas, saídas e saldo</small>
+            </span>
+
+            <span class="material-icon">chevron_right</span>
+          </button>
+
+          <button class="menu-item" data-pagina="paginaOrcamentos">
+            <span class="menu-icone menu-roxo">
+              <span class="material-icon">description</span>
+            </span>
+
+            <span class="menu-texto">
+              <strong>Orçamentos</strong>
+              <small>Criação e histórico</small>
+            </span>
+
+            <span class="material-icon">chevron_right</span>
+          </button>
+
+          <button class="menu-item" data-pagina="paginaAgenda">
+            <span class="menu-icone menu-ciano">
+              <span class="material-icon">calendar_month</span>
+            </span>
+
+            <span class="menu-texto">
+              <strong>Agenda de Serviços</strong>
+              <small>Visitas, obras e prazos</small>
+            </span>
+
+            <span class="material-icon">chevron_right</span>
+          </button>
+
+        </div>
+
+        <button id="btnSair" class="btn-sair">
+          <span class="material-icon">logout</span>
+          Sair da conta
+        </button>
+      </section>
+
+      <!-- ORÇAMENTOS -->
+      <section id="paginaOrcamentos" class="pagina">
+        <div class="pagina-cabecalho">
+          <h2>Orçamentos</h2>
+          <p>Criação e acompanhamento de propostas.</p>
+        </div>
+
+        <article class="painel-card">
+          <p class="estado-vazio">
+            O módulo de orçamentos será conectado
+            na próxima etapa.
+          </p>
+        </article>
+      </section>
+
+      <!-- AGENDA -->
+      <section id="paginaAgenda" class="pagina">
+        <div class="pagina-cabecalho">
+          <h2>Agenda de Serviços</h2>
+          <p>Visitas técnicas e obras programadas.</p>
+        </div>
+
+        <article class="painel-card">
+          <div id="listaAgenda">
+            <p class="estado-vazio">
+              Carregando agendamentos...
+            </p>
+          </div>
+        </article>
+      </section>
+
+    </main>
+
+    <!-- MENU INFERIOR -->
+    <nav class="bottom-nav" aria-label="Navegação principal">
+
+      <button class="nav-item ativo" data-pagina="paginaInicio">
+        <span class="material-icon">home</span>
+        <small>Início</small>
+      </button>
+
+      <button class="nav-item" data-pagina="paginaObras">
+        <span class="material-icon">engineering</span>
+        <small>Obras</small>
+      </button>
+
+      <button class="nav-item" data-pagina="paginaFinanceiro">
+        <span class="material-icon">bar_chart</span>
+        <small>Financeiro</small>
+      </button>
+
+      <button class="nav-item" data-pagina="paginaEstoque">
+        <span class="material-icon">layers</span>
+        <small>Estoque</small>
+      </button>
+
+      <button class="nav-item" data-pagina="paginaMais">
+        <span class="material-icon">grid_view</span>
+        <small>Mais</small>
+      </button>
+
+    </nav>
+
+  </div>
+
+  <!-- FONTES E GRÁFICOS -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  >
+
+  <link
+    href="https://fonts.googleapis.com/icon?family=Material+Icons"
+    rel="stylesheet"
+  >
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</body>
+</html>
